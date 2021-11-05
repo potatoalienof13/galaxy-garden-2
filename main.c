@@ -6,20 +6,15 @@
 #include <random>
 #include <array>
 
-
 struct XY {
 	int x;
 	int y;
 };
 
-
-
 struct vec2 {
 	GLfloat x;
 	GLfloat y;
 };
-
-
 
 struct vec3 {
 	GLfloat r;
@@ -27,11 +22,9 @@ struct vec3 {
 	GLfloat b;
 };
 
-
-
 XY window_size{800, 600};
-const int num_points = 3;
-const int num_used = 2;
+const int num_points = 10;
+const int num_used = 5;
 
 class Shader
 {
@@ -97,51 +90,6 @@ float vertices[] = { // vertices for a rectangle that fills the entire screen
 	    1.f, 1.f,  0.0f,
 	    1.f, -1.f,  0.0f
     };
-
-/*
-unsigned int create_compile_shader(int shader_type, const char *source, const char *shader_name)
-{
-	unsigned int shader;
-	shader = glCreateShader(shader_type);
-	glShaderSource(shader, 1, &source, NULL);
-	glCompileShader(shader);
-	int  success;
-	char infoLog[512];
-	glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-
-	if (!success) {
-		glGetShaderInfoLog(shader, 512, NULL, infoLog);
-		std::cout << "ERROR::SHADER::" << shader_name << "::COMPILATION_FAILED\n" << infoLog << std::endl;
-		std::exit(1);
-	}
-
-
-	return shader;
-}
-
-unsigned int read_create_compile_shader(int shader_type, const char *filename, const char *shader_name)
-{
-	std::stringstream shader_string;
-	std::ifstream shader_file(filename);
-
-
-	shader_string << "#version 400\n";
-
-	shader_string << "#define NUM_POINTS " << num_points << "\n";
-
-	shader_string << "#define NUM_USED " << num_used << "\n";
-
-	std::cout << shader_string.str();
-	shader_string << shader_file.rdbuf();
-
-	if (shader_string.str().empty()) {
-		std::cout << "shader file opening failed, the filename was " << filename << std::endl;
-		std::exit(0);
-	}
-
-	return create_compile_shader(shader_type, shader_string.str().c_str(), shader_name);
-}
-*/
 
 void processInput(GLFWwindow *window)
 {
@@ -254,7 +202,7 @@ int main()
 	
 	glUseProgram(shaderProgram);
 	//glUniform1f(timeLocation, time);
-	std::array<vec2, 5> points;
+	std::array<vec2, num_points> points;
 	
 	
 	std::random_device r;
@@ -285,10 +233,10 @@ int main()
 	}
 	
 	std::array<float, num_points> point_speeds;
-	std::uniform_real_distribution<> rand_one_to_neg_one (-1, 1); 
-
-	for(auto &i : point_speeds){
-		i = rand_one_to_neg_one(rand_engine); 
+	std::uniform_real_distribution<> rand_one_to_neg_one(-1, 1);
+	
+	for (auto &i : point_speeds) {
+		i = rand_one_to_neg_one(rand_engine);
 	}
 	
 	while (!glfwWindowShouldClose(window)) {

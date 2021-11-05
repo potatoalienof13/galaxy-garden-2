@@ -33,16 +33,14 @@ void main()
 				break;
 			}
 		}
-		
 		if (set_flag == 1) {
 			int least_distance = 0; 
 			
 			for (int j = 0; j < NUM_USED; j++) {
-				if (distances[top_distance_indexes[j]] > distances[top_distance_indexes[least_distance]]) {
+				if (distances[top_distance_indexes[j]] < distances[top_distance_indexes[least_distance]]) {
 					least_distance = j;
 				}
 			}
-
 			top_distance_indexes[least_distance] = i; 
 		}
 		
