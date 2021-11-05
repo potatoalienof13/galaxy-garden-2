@@ -28,7 +28,7 @@ void main()
 		int set_flag = 0;
 		
 		for (int j = 0; j < NUM_USED; j++) {
-			if (distances[i] > distances[top_distance_indexes[j]]) {
+			if (distances[i] < distances[top_distance_indexes[j]]) {
 				set_flag = 1;
 				break;
 			}
@@ -37,7 +37,7 @@ void main()
 			int least_distance = 0; 
 			
 			for (int j = 0; j < NUM_USED; j++) {
-				if (distances[top_distance_indexes[j]] < distances[top_distance_indexes[least_distance]]) {
+				if (distances[top_distance_indexes[j]] > distances[top_distance_indexes[least_distance]]) {
 					least_distance = j;
 				}
 			}
