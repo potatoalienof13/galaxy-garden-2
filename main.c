@@ -44,7 +44,6 @@ public:
 		id = glCreateShader(type);
 		std::string string_source = source.str();
 		const char *cc_source = string_source.c_str();
-		std::cout << id << std::endl;
 		glShaderSource(id, 1, &cc_source, NULL);
 		glCompileShader(id);
 		
@@ -136,13 +135,10 @@ int main()
 		return -1;
 	}
 	
-	
-	//unsigned int vertexShader = read_create_compile_shader(GL_VERTEX_SHADER, "vertex_shader.vs", "VERTEX");
 	Shader vertex_shader(GL_VERTEX_SHADER, "VERTEX");
 	vertex_shader.read_file("vertex_shader.vs");
 	vertex_shader.compile();
 	
-	//unsigned int fragmentShader = read_create_compile_shader(GL_FRAGMENT_SHADER, "fragment_shader.fs", "fragement");
 	Shader fragment_shader(GL_FRAGMENT_SHADER, "FRAGMENT");
 	fragment_shader.source << "#version 400\n#define NUM_POINTS " << num_points << "\n#define NUM_USED " << num_used <<
 	                       "\n";
@@ -199,19 +195,10 @@ int main()
 		puts("failed at colors");
 	}
 	
-	
-	glUseProgram(shaderProgram);
-	//glUniform1f(timeLocation, time);
 	std::array<vec2, num_points> points;
 	
-	
 	std::random_device r;
-	
 	std::default_random_engine rand_engine(r());
-	
-	
-	
-	
 	std::uniform_real_distribution<> rand_one(0, 1);
 	
 	for (int i = 0; i < num_points; i++) {
@@ -221,15 +208,10 @@ int main()
 	
 	std::array<vec3, num_points> point_colors;
 	
-	
 	for (int i = 0; i < num_points; i++) {
 		point_colors[i].r = rand_one(rand_engine);
 		point_colors[i].g = rand_one(rand_engine);
 		point_colors[i].b = rand_one(rand_engine);
-	}
-	
-	for (int i = 0; i < num_points; i ++) {
-		printf("%f\n", point_colors.at(i).r);
 	}
 	
 	std::array<float, num_points> point_speeds;
@@ -238,6 +220,9 @@ int main()
 	for (auto &i : point_speeds) {
 		i = rand_one_to_neg_one(rand_engine);
 	}
+	
+	glUseProgram(shaderProgram);
+	
 	
 	while (!glfwWindowShouldClose(window)) {
 	
