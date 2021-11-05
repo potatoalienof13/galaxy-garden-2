@@ -23,8 +23,8 @@ struct vec3 {
 };
 
 XY window_size{800, 600};
-const int num_points = 5;
-const int num_used = 2;
+const int num_points = 20;
+const int num_used = 20;
 
 class Shader
 {
