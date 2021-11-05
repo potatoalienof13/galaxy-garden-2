@@ -174,7 +174,7 @@ int main()
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	
 	glBindVertexArray(0);
-
+	
 	int timeLocation = glGetUniformLocation(shaderProgram, "time");
 	
 	if (timeLocation == -1) {
@@ -221,13 +221,11 @@ int main()
 	
 	glUseProgram(shaderProgram);
 	
-	
 	while (!glfwWindowShouldClose(window)) {
 	
 		std::uniform_real_distribution<> rand_dis(-10, 10);
 		
 		std::array<vec2, num_points> effective_points;
-		
 		
 		float time = glfwGetTime();
 		
@@ -244,7 +242,6 @@ int main()
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 		
-		glUseProgram(shaderProgram);
 		glBindVertexArray(VAO);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		
