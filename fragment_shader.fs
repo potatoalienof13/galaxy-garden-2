@@ -1,3 +1,6 @@
+// NUM_USED and NUM_POINTS are defined before the start of this file.
+// The #defines for them are prepended to this file. 
+
 
 out vec4 FragColor;
 
