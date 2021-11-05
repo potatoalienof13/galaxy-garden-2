@@ -174,9 +174,7 @@ int main()
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	
 	glBindVertexArray(0);
-	
-	// float time = glfwGetTime();
-	
+
 	int timeLocation = glGetUniformLocation(shaderProgram, "time");
 	
 	if (timeLocation == -1) {
