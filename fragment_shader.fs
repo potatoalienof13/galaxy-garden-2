@@ -34,7 +34,7 @@ void main()
 	}
 
 	// This puts the indexes of the points with the lowest distance into top_distance_indexes
-	for (int i = 0; i < points.length(); i++) {
+	for (int i = NUM_USED; i < points.length(); i++) { // start at NUM_USED because the the indexes before that were already filled. 
 		int set_flag = 0;
 		
 		for (int j = 0; j < NUM_USED; j++) {
