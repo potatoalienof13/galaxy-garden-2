@@ -5,6 +5,10 @@
 #include <fstream>
 #include <random>
 #include <array>
+#include <tclap/CmdLine.h>
+
+#include "initialization.hpp"
+#include "shader.hpp"
 
 struct XY {
 	int x;
@@ -23,8 +27,8 @@ struct vec3 {
 };
 
 XY window_size{800, 600};
-const int num_points = 20;
-const int num_used = 20;
+int num_points = 4;
+int num_used = 2;
 
 class Shader
 {
@@ -74,12 +78,6 @@ public:
 
 
 
-void framebuffer_size_callback(GLFWwindow *window, int width, int height)
-{
-	window_size = {width, height};
-	glViewport(0, 0, width, height);
-}
-
 float vertices[] = { // vertices for a rectangle that fills the entire screen
 	-1.f, -1.f, 0.0f,
 	    1.f, -1.f, 0.0f,
@@ -90,50 +88,21 @@ float vertices[] = { // vertices for a rectangle that fills the entire screen
 	    1.f, -1.f,  0.0f
     };
 
-void processInput(GLFWwindow *window)
-{
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-		glfwSetWindowShouldClose(window, true);
-	}
-}
-
-void check_link_success(unsigned int program)
-{
-	int  success;
-	char infoLog[512];
-	
-	glGetProgramiv(program, GL_LINK_STATUS, &success);
-	
-	if (!success) {
-		glGetProgramInfoLog(program, 512, NULL, infoLog);
-		
-		std::cout << "ERROR::SHADER::LIONING::COMPILATION_FAILED\n" << infoLog << std::endl;
-	}
-}
 
 int main()
 {
-	glfwInit();
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	/*
+	try {
+		TCLAP::CmdLine cmd("haha yes this is a random library");
 	
-	GLFWwindow *window =
-	    glfwCreateWindow(window_size.x, window_size.y, "opengle", NULL, NULL);
-	    
-	if (!window) {
-		std::cout << " window failed" << std::endl;
-		glfwTerminate();
-		return 9;
-	}
+	} catch (TCLAP::ArgException &e){
+		std::cerr << "error:" << e.error() << std::endl;
+	}*/
 	
-	glfwMakeContextCurrent(window);
-	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	
-	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-		std::cout << "Failed to initialize GLAD" << std::endl;
-		return -1;
-	}
+	GLFWwindow *window = initialize_glfw(window_size.x, window_size.y);
+	initialize_glad();
+	
 	
 	Shader vertex_shader(GL_VERTEX_SHADER, "VERTEX");
 	vertex_shader.read_file("vertex_shader.vs");
@@ -175,6 +144,39 @@ int main()
 	
 	glBindVertexArray(0);
 	
+	
+	std::vector<vec2> points(num_points);
+	
+	std::random_device r;
+	std::default_random_engine rand_engine(r());
+	std::uniform_real_distribution<> rand_one(0, 1);
+	
+	for (int i = 0; i < num_points; i++) {
+		points[i].x = rand_one(rand_engine);
+		points[i].y = rand_one(rand_engine);
+	}
+	
+	std::vector<vec3> point_colors(num_points);
+	
+	for (int i = 0; i < num_points; i++) {
+		point_colors[i].r = rand_one(rand_engine);
+		point_colors[i].g = rand_one(rand_engine);
+		point_colors[i].b = rand_one(rand_engine);
+	}
+	
+	std::vector<float> point_speeds(num_points);
+	std::uniform_real_distribution<> rand_one_to_neg_one(-1, 1);
+	
+	for (auto &i : point_speeds) {
+		i = rand_one_to_neg_one(rand_engine);
+	}
+	
+	glUseProgram(shaderProgram);
+	
+	std::vector<vec2> effective_points(num_points);
+	
+	
+	
 	int timeLocation = glGetUniformLocation(shaderProgram, "time");
 	
 	if (timeLocation == -1) {
@@ -193,50 +195,23 @@ int main()
 		puts("failed at colors");
 	}
 	
-	std::array<vec2, num_points> points;
-	
-	std::random_device r;
-	std::default_random_engine rand_engine(r());
-	std::uniform_real_distribution<> rand_one(0, 1);
-	
-	for (int i = 0; i < num_points; i++) {
-		points[i].x = rand_one(rand_engine);
-		points[i].y = rand_one(rand_engine);
-	}
-	
-	std::array<vec3, num_points> point_colors;
-	
-	for (int i = 0; i < num_points; i++) {
-		point_colors[i].r = rand_one(rand_engine);
-		point_colors[i].g = rand_one(rand_engine);
-		point_colors[i].b = rand_one(rand_engine);
-	}
-	
-	std::array<float, num_points> point_speeds;
-	std::uniform_real_distribution<> rand_one_to_neg_one(-1, 1);
-	
-	for (auto &i : point_speeds) {
-		i = rand_one_to_neg_one(rand_engine);
-	}
-	
-	glUseProgram(shaderProgram);
+	double initial_time = glfwGetTime();
+	unsigned int elapsed_frames = 0;
 	
 	while (!glfwWindowShouldClose(window)) {
 	
 		std::uniform_real_distribution<> rand_dis(-10, 10);
 		
-		std::array<vec2, num_points> effective_points;
-		
 		float time = glfwGetTime();
 		
-		for (int i = 0; i < num_points; i++) {
-			effective_points[i].x = window_size.x * points[i].x + std::sin(time * 2 * point_speeds[i]) * 40;
-			effective_points[i].y = window_size.y * points[i].y + std::cos(time * 2 * point_speeds[i]) * 40;
+		for (int i = 0; i < num_points; i++) { // move the points in a circle
+			effective_points[i].x = window_size.x * points[i].x + std::sin(time * 1 * point_speeds[i]) * 1000;
+			effective_points[i].y = window_size.y * points[i].y + std::cos(time * 1 * point_speeds[i]) * 1000;
 		}
 		
 		glUniform2fv(pointsLocation, num_points, (GLfloat *) effective_points.data());
 		glUniform3fv(pointColorsLocation, num_points, (GLfloat *) point_colors.data());
-		glUniform1f(timeLocation, time);
+		glUniform1f(timeLocation, time / 4);
 		
 		processInput(window);
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -245,9 +220,19 @@ int main()
 		glBindVertexArray(VAO);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		
-		
 		glfwSwapBuffers(window);
 		glfwPollEvents();
+		{
+			elapsed_frames++;
+			double time_change = glfwGetTime() - initial_time;
+			
+			if (time_change > 1) {
+				std::cout << time_change / elapsed_frames << std::endl;
+				elapsed_frames = 0;
+				initial_time = glfwGetTime();
+				
+			}
+		}
 	}
 	
 	glfwTerminate();
