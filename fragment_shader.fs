@@ -1,5 +1,5 @@
 // NUM_USED and NUM_POINTS are defined before the start of this file.
-// The #defines for them are prepended to this file. 
+// The #defines for them are prepended to this file.
 
 // This file contains some lines of commented out code.
 // This is not because I changed it and forgot to remove the old version.
@@ -20,21 +20,28 @@ void main()
 	
 	int top_distance_indexes[NUM_USED];
 	float total_distance = 0;
-
-	// Distance ranking. 
+	
+	// Distance ranking.
 	for (int i = 0; i < points.length(); i++) {
-		distances[i] = sin(distance(points[i], gl_FragCoord.xy) / 30.) + 1;
+		float actual_distance = distance(points[i], gl_FragCoord.xy);
+		//distances[i] = actual_distance;
+		//distances[i] = 100. / log(actual_distance);
+		distances[i] = sin(time * 9 + actual_distance / 100) + 1;
+		//distances[i] *= cos(pow(actual_distance, 1.));
+		//distances[i] *= sin(pow(actual_distance, 2.));
 		//distances[i] = distance(points[i], gl_FragCoord.xy);
 	}
-
+	
 	// This for loop adds some reasonable numbers into top_distance_indexes.
-	// The for loop after this one needs those reasonable numbers. 
+	// The for loop after this one needs those reasonable numbers.
 	for (int i = 0; i < NUM_USED; i++) {
 		top_distance_indexes[i] = i;
 	}
-
-	// This puts the indexes of the points with the lowest distance into top_distance_indexes
-	for (int i = NUM_USED; i < points.length(); i++) { // start at NUM_USED because the the indexes before that were already filled. 
+	
+	
+	
+	for (int i = NUM_USED; i < points.length();
+	     i++) { // start at NUM_USED because the the indexes before that were already filled.
 		int set_flag = 0;
 		
 		for (int j = 0; j < NUM_USED; j++) {
@@ -43,37 +50,44 @@ void main()
 				break;
 			}
 		}
+		
 		if (set_flag == 1) {
-			int least_distance = 0; 
+			int least_distance = 0;
 			
 			for (int j = 0; j < NUM_USED; j++) {
 				if (distances[top_distance_indexes[j]] > distances[top_distance_indexes[least_distance]]) {
 					least_distance = j;
 				}
 			}
-			top_distance_indexes[least_distance] = i; 
+			
+			top_distance_indexes[least_distance] = i;
 		}
-		
 	}
-	// This just counts up the total distance, so it can be used in the next for loop. 
-	for(int i = 0; i < NUM_USED; i++){
+	
+	
+	// This just counts up the total distance, so it can be used in the next for loop.
+	for (int i = 0; i < NUM_USED; i++) {
 		//distances[top_distance_indexes[i]] = sin(distances[top_distance_indexes[i]] / 30.) + 1;
 		total_distance += distances[top_distance_indexes[i]];
 	}
-
+	
 	// This line of code actually creates the return color, from the distances and point_colors given.
-	for (int i = 0; i < NUM_USED; i++) { 
-		vec3 color = (sin(point_colors[top_distance_indexes[i]] * 360 + time) + 1) / 2;
+	for (int i = 0; i < NUM_USED; i++) {
+		vec3 color = (sin(point_colors[top_distance_indexes[i]] * 360 + time * 4) + 1) / 2;
 		FragColor += vec4(distances[top_distance_indexes[i]] / total_distance * color, 1.);
 	}
-
-	// This draws a circle around all points, useful for making sure things work. 
+	
+	// This draws a circle around all points, useful for making sure things work.
 	/*
 	for (int i = 0; i < NUM_POINTS; i++){
 		if(distances[i] < 10){
 			FragColor = vec4(1.,1.,1., 1.);
 		}
 	}
-	*/ 
+	*/
 }
+
+
+
+
 
