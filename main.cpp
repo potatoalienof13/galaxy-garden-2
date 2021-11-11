@@ -30,7 +30,6 @@ XY window_size{800, 600};
 int num_points = 4;
 int num_used = 2;
 
-
 float vertices[] = { // vertices for a rectangle that fills the entire screen
 	-1.f, -1.f, 0.0f,
 	    1.f, -1.f, 0.0f,

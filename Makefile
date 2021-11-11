@@ -1,5 +1,5 @@
 all:
-	g++ -Iinclude -lglfw -lGL -lX11 -lpthread -lXrandr -lXi -ldl main.cpp glad.c -O2 -o gg2
+	c++ -Iinclude -lglfw -lGL -lX11 -lpthread -lXrandr -lXi -ldl main.cpp shader.cpp initialization.cpp glad.cpp -O2 -o gg2
 
 debug:
-	g++ -Iinclude -lglfw -lGL -lX11 -lpthread -lXrandr -lXi -ldl main.cpp glad.c -Og -g -o gg2
+	c++ -Iinclude -lglfw -lGL -lX11 -lpthread -lXrandr -lXi -ldl main.cpp shader.cpp initialization.cpp glad.cpp -Og -g -o gg2
