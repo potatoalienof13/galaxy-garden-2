@@ -197,9 +197,8 @@ int main(int argc, char **argv)
 	fragment_shader.source << "#define ORDERING " << (ordering_greater ? ">" : "<") << std::endl;
 	fragment_shader.source << "#line 1\n"; // for proper error messages
 	
-	
-	fragment_shader.read_file(config_path +
-	                          fragment_filename); // appends the contents of that file to the existing contents
+	// appends the contents of that file to the existing contents
+	fragment_shader.read_file(config_path + fragment_filename);
 	fragment_shader.compile();
 	
 	unsigned int shaderProgram = glCreateProgram();
@@ -230,10 +229,7 @@ int main(int argc, char **argv)
 	glBindVertexArray(0);
 	
 	// Here is where the actual program starts
-	std::random_device r;
-	std::default_random_engine rand_engine(r());
-	std::uniform_real_distribution<> rand_one(0, 1);
-	std::uniform_real_distribution<> rand_one_to_neg_one(-1, 1);
+	std::default_random_engine rand_engine((std::random_device()()));
 	std::uniform_real_distribution<> vel_max_rand(- point_vel_max, point_vel_max);
 	std::uniform_real_distribution<> rand_in_margins_x(point_margins.x, 1 - point_margins.x);
 	std::uniform_real_distribution<> rand_in_margins_y(point_margins.y, 1 - point_margins.y);
@@ -242,56 +238,44 @@ int main(int argc, char **argv)
 	std::vector<float> point_speeds(num_points);
 	std::vector<vec2> effective_points(num_points);
 	std::vector<vec2> point_velocities(num_points);
+	std::vector<vec3> point_colors(num_points);
 	
 	if (use_grid_points) {
 		int i = 0;
-		
 		for (int x = 0; x < grid_dimensions.x; x++) {
 			for (int y = 0; y < grid_dimensions.y; y++) {
 				points.at(i) = { static_cast<float>(x) / (grid_dimensions.x - 1), static_cast<float>(y) / (grid_dimensions.y - 1) };
 				i++;
 			}
-			
 		}
-		
 	} else {
 		for (int i = 0; i < num_points; i++) {
-			points[i].x = rand_in_margins_x(rand_engine);
-			points[i].y = rand_in_margins_y(rand_engine);
+			points[i] = { static_cast<GLfloat>(rand_in_margins_x(rand_engine)),  static_cast<GLfloat>(rand_in_margins_y(rand_engine)) };
 		}
 	}
 	
-	std::vector<vec3> point_colors(num_points);
-	
-	
-	std::uniform_real_distribution<> rand_red(color_min.r, color_max.r);
-	std::uniform_real_distribution<> rand_green(color_min.g, color_max.g);
-	std::uniform_real_distribution<> rand_blue(color_min.b, color_max.b);
-	
 	for (int i = 0; i < num_points; i++) {
-		point_colors[i].r = rand_red(rand_engine);
-		point_colors[i].g = rand_green(rand_engine);
-		point_colors[i].b = rand_blue(rand_engine);
+		point_colors[i] = { // Populate with random colors
+			std::uniform_real_distribution<float>(color_min.r, color_max.r)(rand_engine),
+			std::uniform_real_distribution<float>(color_min.g, color_max.g)(rand_engine),
+			std::uniform_real_distribution<float>(color_min.b, color_max.b)(rand_engine),
+		};
 	}
 	
-	
 	for (auto &i : point_speeds)
-		i = rand_one_to_neg_one(rand_engine);
+		i = std::uniform_real_distribution<>(-1, 1)(rand_engine);
 		
 	glUseProgram(shaderProgram);
 	
-	
 	int timeLocation = glGetUniformLocation(shaderProgram, "time");
 	if (timeLocation == -1)
-		puts("failed at time ");
-		
+		puts("failed at time\n");
 	int pointsLocation = glGetUniformLocation(shaderProgram, "points");
 	if (pointsLocation == -1)
-		puts("failed at points");
-		
+		puts("failed at points\n");
 	int pointColorsLocation = glGetUniformLocation(shaderProgram, "point_colors");
 	if (pointColorsLocation == -1)
-		puts("failed at colors");
+		puts("failed at colors\n");
 		
 	double initial_time = glfwGetTime();
 	unsigned int elapsed_frames = 0;
@@ -310,18 +294,24 @@ int main(int argc, char **argv)
 		
 	glEnable(GL_DEBUG_OUTPUT);
 	
+	auto clamper = [](float in, float low, float high) {
+		// returns -1 if in is less than low, 0 if its between, and 1 if its above high
+		return (in > high) - (in < low);
+	};
+	
 	while (!glfwWindowShouldClose(window)) {
 	
 		glfwGetWindowSize(window, &window_size.x, &window_size.y);
-		std::uniform_real_distribution<> rand_dis(-10, 10);
 		
 		float time = glfwGetTime();
 		
-		switch (point_movement_type) {
+		switch (point_movement_type) { // Here is where the points are moved according to point_movement_type
 		case movement::circle:
 			for (int i = 0; i < num_points; i++) { // move the points in a circle
-				effective_points[i].x = points[i].x + std::sin(time * 1 * point_speeds[i]) / 200;
-				effective_points[i].y = points[i].y + std::cos(time * 1 * point_speeds[i]) / 200;
+				effective_points[i] = {
+					points[i].x + std::sin(time * 1 * point_speeds[i]) / 200,
+					points[i].y + std::cos(time * 1 * point_speeds[i]) / 200
+				};
 			}
 			
 		case movement::velocites:
@@ -329,27 +319,17 @@ int main(int argc, char **argv)
 				effective_points[i].x += point_velocities[i].x;
 				effective_points[i].y += point_velocities[i].y;
 				
-				if (effective_points[i].x > 1 - point_margins.x)
-					point_velocities[i].x += (1 - point_margins.x - effective_points[i].x) / 100;
-					
-					
-				else if (effective_points[i].x < point_margins.x)
-					point_velocities[i].x += (point_margins.x - effective_points[i].x) / 100;
-					
-				if (effective_points[i].y > 1 - point_margins.y)
-					point_velocities[i].y += (1 - point_margins.y - effective_points[i].y) / 100;
-					
-					
-				else if (effective_points[i].y < point_margins.y)
-					point_velocities[i].y += (point_margins.y - effective_points[i].y) / 100;
-					
-				point_velocities[i].x += std::sin(time + point_colors[i].r * 360) * point_vel_max / 1000;
-				point_velocities[i].y += std::cos(time + point_colors[i].g * 360) * point_vel_max / 1000;
+				point_velocities[i].x += -0.001 * clamper(effective_points[i].x, point_margins.x, 1 - point_margins.x);
+				point_velocities[i].y += -0.001 * clamper(effective_points[i].y, point_margins.y, 1 - point_margins.y);
 				
+				point_velocities[i].x += std::sin(time + point_colors[i].r * 360) * point_vel_max / 100;
+				point_velocities[i].y += std::cos(time + point_colors[i].g * 360) * point_vel_max / 100;
+				
+				if (point_velocities[i].x > point_vel_max) point_velocities[i].x *= 0.95;
+				if (point_velocities[i].y > point_vel_max) point_velocities[i].y *= 0.95;
 			}
-			
 		case movement::none:
-			; // do nothing
+		{} {} {} {} {} // do a whole lot of nothing
 		}
 		
 		
@@ -363,21 +343,19 @@ int main(int argc, char **argv)
 		if (use_mouse_point) {
 			double cursorx;
 			double cursory;
-			
 			glfwGetCursorPos(window, &cursorx, &cursory);
-			
 			true_points[0] = {static_cast<GLfloat>(cursorx), window_size.y - static_cast<GLfloat>(cursory)};
 		}
 		
+		// Push points to shader
 		glUniform2fv(pointsLocation, num_points, (GLfloat *) true_points.data());
 		glUniform3fv(pointColorsLocation, num_points, (GLfloat *) point_colors.data());
 		glUniform1f(timeLocation, time / 8);
-		
+
+		// Do all the stuff for opengl to actually do something
 		processInput(window);
-		
 		glBindVertexArray(VAO);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
-		
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 		
@@ -389,10 +367,8 @@ int main(int argc, char **argv)
 				std::cout << time_change / elapsed_frames << std::endl;
 				elapsed_frames = 0;
 				initial_time = glfwGetTime();
-				
 			}
 		}
-		
 	}
 	
 	glfwTerminate();
