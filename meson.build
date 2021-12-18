@@ -1,5 +1,5 @@
 project('simple', 'cpp')
-src = ['shader.cpp', 'main.cpp', 'initialization.cpp', 'glad.cpp']
+src = ['shader.cpp', 'main.cpp', 'initialization.cpp', 'glad.cpp', 'vec.cpp']
 inc_dir = include_directories('include')
 
 cppc = meson.get_compiler('cpp')

@@ -12,6 +12,8 @@
 #include "shader.hpp"
 #include "vec.hpp"
 
+std::string vertex_filename("vertex_shader.glsl"), fragment_filename("fragment_shader.glsl");
+
 enum class movement {
 	none,
 	circle,
@@ -29,6 +31,28 @@ constexpr float vertices[] = { // vertices for a rectangle that fills the entire
 		 1.f, -1.f, 0.0f
 };
 // *INDENT-ON*
+
+void shaders_not_found_error() {
+	std::cout << "Could not find shaders at either the path provided to -f, ~/.config, or $XDG_CONFIG_HOME\nExiting" <<
+	          std::endl;
+	std::exit(2);
+}
+
+bool shaders_are_here(std::string path) {
+	std::ifstream vs(path + vertex_filename), fs(path + fragment_filename);
+	return (vs.good() && fs.good());
+}
+
+std::string get_config_dir() {
+	std::string env_config;
+	if (std::getenv("XDG_CONFIG_HOME"))   // can return null pointer, and std::string cannot be initializated with one
+		env_config = std::getenv("XDG_CONFIG_HOME");
+	else
+		env_config = "~/.config";
+	env_config += "/gg2/";
+	return env_config;  // should never be able to reach this.
+}
+
 
 int main(int argc, char **argv)
 {
@@ -53,6 +77,7 @@ int main(int argc, char **argv)
 	bool ordering_greater;
 	
 	int_vec2 window_size = {800, 600};
+	std::string config_path;
 	
 	try {
 		// *INDENT-OFF*
@@ -74,6 +99,7 @@ int main(int argc, char **argv)
 		TCLAP::SwitchArg rotate_colors_arg ("r", "rotate-colors", "Fade between different colors.",false);
 		TCLAP::SwitchArg draw_circles_arg ("d", "draw-circles", "Draw circles at the location of every point.",false);
 		TCLAP::SwitchArg ordering_greater_arg ("G", "greater", "Cull the less valueable points, instead of the most valueable.",false);
+		TCLAP::ValueArg<std::string> config_path_arg ("f", "filepath","Path to a directory containing vertex_shader.glsl and fragment_shader.glsl.", 0, get_config_dir(), "path");
 		
 		cmd.add(num_points_arg);
 		cmd.add(num_used_arg);
@@ -92,6 +118,7 @@ int main(int argc, char **argv)
 		cmd.add(ordering_greater_arg); 
 		cmd.add(rotate_colors_arg);
 		cmd.add(draw_circles_arg);
+		cmd.add(config_path_arg); 
 		// *INDENT-ON*
 		
 		cmd.parse(argc, argv);
@@ -106,7 +133,6 @@ int main(int argc, char **argv)
 			grid_dimensions = use_grid_points_arg.getValue();
 		} else
 			use_grid_points = false; // not really needed, but gets rid of a warning
-			
 			
 		color_max = color_max_arg.getValue();
 		color_min = color_min_arg.getValue();
@@ -131,6 +157,12 @@ int main(int argc, char **argv)
 		draw_circles = draw_circles_arg.getValue();
 		ordering_greater = ordering_greater_arg.getValue();
 		
+		config_path = config_path_arg.getValue();
+		if (! shaders_are_here(config_path)) {
+			std::cout << "Shaders were not found at " <<
+			          (config_path_arg.isSet() ? config_path : "XDG_CONFIG_HOME or ~/.config") << std::endl;
+			std::exit(2);
+		}
 	} catch (TCLAP::ArgException &e) {
 		std::cerr << "error:" << e.error() << std::endl;
 		std::exit(1);
@@ -140,7 +172,7 @@ int main(int argc, char **argv)
 	initialize_glad();
 	
 	Shader vertex_shader(GL_VERTEX_SHADER, "VERTEX");
-	vertex_shader.read_file("vertex_shader.vs");
+	vertex_shader.read_file(config_path + vertex_filename);
 	vertex_shader.compile();
 	
 	
@@ -165,7 +197,9 @@ int main(int argc, char **argv)
 	fragment_shader.source << "#define ORDERING " << (ordering_greater ? ">" : "<") << std::endl;
 	fragment_shader.source << "#line 1\n"; // for proper error messages
 	
-	fragment_shader.read_file("fragment_shader.fs"); // appends the contents of that file to the existing contents
+	
+	fragment_shader.read_file(config_path +
+	                          fragment_filename); // appends the contents of that file to the existing contents
 	fragment_shader.compile();
 	
 	unsigned int shaderProgram = glCreateProgram();
