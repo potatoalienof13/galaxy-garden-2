@@ -7,6 +7,7 @@ dl_dep = cppc.find_library('dl', required : true)
 
 executable('gg2', src, include_directories : inc_dir, dependencies : [
 dependency('glfw3'),
+dependency('opencv4'),
 dl_dep,
 ])
 

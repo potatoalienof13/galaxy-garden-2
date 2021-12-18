@@ -31,14 +31,15 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 	glViewport(0, 0, width, height);
 }
 
-GLFWwindow *initialize_glfw(int width, int height)
+GLFWwindow *initialize_glfw(int width, int height,bool show_window)
 {
 
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	
+	glfwWindowHint(GLFW_VISIBLE, show_window ? GLFW_TRUE : GLFW_FALSE); 
+
 	GLFWwindow *window =
 	    glfwCreateWindow(width, height, "opengle", NULL, NULL);
 	    

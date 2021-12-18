@@ -7,6 +7,8 @@
 #include <array>
 #include <tclap/CmdLine.h>
 #include <filesystem>
+#include <opencv2/core/core.hpp>
+#include <opencv2/imgcodecs.hpp>
 
 #include "initialization.hpp"
 #include "shader.hpp"
@@ -20,6 +22,8 @@ enum class movement {
 	velocites,
 };
 
+
+
 // *INDENT-OFF*
 constexpr float vertices[] = { // vertices for a rectangle that fills the entire screen
 		-1.f, -1.f, 0.0f,
@@ -31,7 +35,6 @@ constexpr float vertices[] = { // vertices for a rectangle that fills the entire
 		 1.f, -1.f, 0.0f
 };
 // *INDENT-ON*
-
 void shaders_not_found_error() {
 	std::cout << "Could not find shaders at either the path provided to -f, ~/.config, or $XDG_CONFIG_HOME\nExiting" <<
 	          std::endl;
@@ -75,6 +78,8 @@ int main(int argc, char **argv)
 	std::string value_algo;
 	bool value_algo_is_block;
 	bool ordering_greater;
+	bool render_to_image;
+	std::string image_filename;
 	
 	int_vec2 window_size = {800, 600};
 	std::string config_path;
@@ -100,6 +105,7 @@ int main(int argc, char **argv)
 		TCLAP::SwitchArg draw_circles_arg ("d", "draw-circles", "Draw circles at the location of every point.",false);
 		TCLAP::SwitchArg ordering_greater_arg ("G", "greater", "Cull the less valueable points, instead of the most valueable.",false);
 		TCLAP::ValueArg<std::string> config_path_arg ("f", "filepath","Path to a directory containing vertex_shader.glsl and fragment_shader.glsl.", 0, get_config_dir(), "path");
+		TCLAP::ValueArg<std::string> image_filename_arg ("I", "image","Write an image to this file, do not open a window.", 0, "", "path");
 		
 		cmd.add(num_points_arg);
 		cmd.add(num_used_arg);
@@ -118,7 +124,8 @@ int main(int argc, char **argv)
 		cmd.add(ordering_greater_arg); 
 		cmd.add(rotate_colors_arg);
 		cmd.add(draw_circles_arg);
-		cmd.add(config_path_arg); 
+		cmd.add(config_path_arg);
+		cmd.add(image_filename_arg);
 		// *INDENT-ON*
 		
 		cmd.parse(argc, argv);
@@ -163,18 +170,21 @@ int main(int argc, char **argv)
 			          (config_path_arg.isSet() ? config_path : "XDG_CONFIG_HOME or ~/.config") << std::endl;
 			std::exit(2);
 		}
+		
+		render_to_image = image_filename_arg.isSet();
+		image_filename = image_filename_arg.getValue();
+		
 	} catch (TCLAP::ArgException &e) {
 		std::cerr << "error:" << e.error() << std::endl;
 		std::exit(1);
 	}
-	
-	GLFWwindow *window = initialize_glfw(window_size.x, window_size.y);
+
+	GLFWwindow *window = initialize_glfw(window_size.x, window_size.y, !render_to_image);
 	initialize_glad();
 	
 	Shader vertex_shader(GL_VERTEX_SHADER, "VERTEX");
 	vertex_shader.read_file(config_path + vertex_filename);
 	vertex_shader.compile();
-	
 	
 	if (use_grid_points)
 		num_points = grid_dimensions.x * grid_dimensions.y;
@@ -227,6 +237,17 @@ int main(int argc, char **argv)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	
 	glBindVertexArray(0);
+
+
+	GLuint fbo, render_buf;
+	if (render_to_image) {
+		glGenFramebuffers(1, &fbo);
+		glGenRenderbuffers(1, &render_buf);
+		glBindRenderbuffer(GL_RENDERBUFFER, render_buf);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_BGRA, window_size.x, window_size.y);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
+		glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, render_buf);
+	}
 	
 	// Here is where the actual program starts
 	std::default_random_engine rand_engine((std::random_device()()));
@@ -291,18 +312,25 @@ int main(int argc, char **argv)
 	
 	if (point_movement_type == movement::none)
 		effective_points = points;
-		
-	glEnable(GL_DEBUG_OUTPUT);
+
 	
 	auto clamper = [](float in, float low, float high) {
 		// returns -1 if in is less than low, 0 if its between, and 1 if its above high
 		return (in > high) - (in < low);
 	};
 	
-	while (!glfwWindowShouldClose(window)) {
+	cv::Mat img(window_size.x, window_size.y, CV_8UC3);
+	if (render_to_image) {
+		glPixelStorei(GL_PACK_ALIGNMENT, (img.step & 3) ? 1 : 4);
+		glPixelStorei(GL_PACK_ROW_LENGTH, img.step / img.elemSize());
+	}
 	
-		glfwGetWindowSize(window, &window_size.x, &window_size.y);
-		
+	if (render_to_image)
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
+
+	while (!glfwWindowShouldClose(window)) {
+		if (!render_to_image)
+			glfwGetWindowSize(window, &window_size.x, &window_size.y);
 		float time = glfwGetTime();
 		
 		switch (point_movement_type) { // Here is where the points are moved according to point_movement_type
@@ -351,13 +379,21 @@ int main(int argc, char **argv)
 		glUniform2fv(pointsLocation, num_points, (GLfloat *) true_points.data());
 		glUniform3fv(pointColorsLocation, num_points, (GLfloat *) point_colors.data());
 		glUniform1f(timeLocation, time / 8);
-
+		
 		// Do all the stuff for opengl to actually do something
-		processInput(window);
+		if (!render_to_image)
+			processInput(window);
 		glBindVertexArray(VAO);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
-		glfwSwapBuffers(window);
-		glfwPollEvents();
+		
+		if (!render_to_image) {
+			glfwSwapBuffers(window);
+			glfwPollEvents();
+		}	else {
+			glReadBuffer(GL_COLOR_ATTACHMENT0);
+			glReadPixels(0, 0, img.cols, img.rows, GL_BGR, GL_UNSIGNED_BYTE, img.data);
+			break;
+		}
 		
 		if (print_frame_times) {
 			elapsed_frames++;
@@ -370,7 +406,10 @@ int main(int argc, char **argv)
 			}
 		}
 	}
-	
+	if (render_to_image) {
+		cv::flip(img, img, 0);
+		cv::imwrite(image_filename, img);
+	}
 	glfwTerminate();
 	return 0;
 }
