@@ -166,10 +166,10 @@ int main(int argc, char **argv)
 			num_points = grid_dimensions.x * grid_dimensions.y;
 		} else
 			use_grid_points = false; // not really needed, but gets rid of a warning
-
-		if(num_used > num_points){
-			std::cout << "Numavg cannot be bigger then numpoints!" << std::endl; 
-			std::exit(3); 
+			
+		if (num_used > num_points) {
+			std::cout << "Numavg cannot be bigger then numpoints!" << std::endl;
+			std::exit(3);
 		}
 		
 		if (point_movement_string == "none")
@@ -179,7 +179,7 @@ int main(int argc, char **argv)
 		else if (point_movement_string == "velocity")
 			point_movement_type = movement::velocites;
 		else throw TCLAP::ArgException("Invalid movement type");
-			
+		
 	} catch (TCLAP::ArgException &e) {
 		std::cerr << "error:" << e.error() << std::endl;
 		std::exit(1);
