@@ -29,8 +29,8 @@ float get_angle_with_rotation(in float adj, in vec2 v1, in vec2 v2)
 	change = normalize(change);
 	rotate(change, adj);
 	
-	//return abs(atan(change.x / change.y));
-	return abs(change.x) / 10;
+	return abs(atan(change.x / change.y));
+	//return abs(change.x) / 10;
 }
 
 float sorting_ranker(in vec2 point, in vec3 pc)

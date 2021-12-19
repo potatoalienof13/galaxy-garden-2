@@ -5,6 +5,7 @@
 #include <fstream>
 #include <random>
 #include <array>
+#include <map>
 #include <tclap/CmdLine.h>
 #include <filesystem>
 #include <opencv2/core/core.hpp>
@@ -19,7 +20,7 @@ std::string vertex_filename("vertex_shader.glsl"), fragment_filename("fragment_s
 enum class movement {
 	none,
 	circle,
-	velocites,
+	velocity,
 };
 
 
@@ -51,7 +52,10 @@ std::string get_config_dir() {
 	if (std::getenv("XDG_CONFIG_HOME"))   // can return null pointer, and std::string cannot be initializated with one
 		env_config = std::getenv("XDG_CONFIG_HOME");
 	else
-		env_config = "~/.config";
+	{
+		std::string home = std::getenv("HOME");
+		env_config = home + "/.config";
+	}
 	env_config += "/gg2/";
 	return env_config;  // should never be able to reach this.
 }
@@ -172,13 +176,9 @@ int main(int argc, char **argv)
 			std::exit(3);
 		}
 		
-		if (point_movement_string == "none")
-			point_movement_type = movement::none;
-		else if (point_movement_string == "circle")
-			point_movement_type = movement::circle;
-		else if (point_movement_string == "velocity")
-			point_movement_type = movement::velocites;
-		else throw TCLAP::ArgException("Invalid movement type");
+		std::map<std::string, movement> themap {{"none", movement::none}, {"circle", movement::circle}, {"velocity", movement::velocity}};
+		try { point_movement_type = themap.at(point_movement_string); }
+		catch (std::out_of_range &E) { throw TCLAP::ArgException(point_movement_string + "is not one of 'none', 'circle', or 'velocity'"); }
 		
 	} catch (TCLAP::ArgException &e) {
 		std::cerr << "error:" << e.error() << std::endl;
@@ -215,27 +215,27 @@ int main(int argc, char **argv)
 	fragment_shader.compile();
 	
 	unsigned int shaderProgram = glCreateProgram();
-	{	// Compile and link the shader program
-		glAttachShader(shaderProgram, vertex_shader.id);
-		glAttachShader(shaderProgram, fragment_shader.id);
-		glLinkProgram(shaderProgram);
-		check_link_success(shaderProgram);
-		glDeleteShader(vertex_shader.id);
-		glDeleteShader(fragment_shader.id);
-	}
+	// Compile and link the shader program
+	glAttachShader(shaderProgram, vertex_shader.id);
+	glAttachShader(shaderProgram, fragment_shader.id);
+	glLinkProgram(shaderProgram);
+	check_link_success(shaderProgram);
+	glDeleteShader(vertex_shader.id);
+	glDeleteShader(fragment_shader.id);
+	
 	
 	unsigned int VBO, VAO;
-	{	// Set up vertex and array buffers
-		glGenVertexArrays(1, &VAO);
-		glGenBuffers(1, &VBO);
-		glBindVertexArray(VAO);
-		glBindBuffer(GL_ARRAY_BUFFER, VBO); // set type of buffer
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
-		glEnableVertexAttribArray(0);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindVertexArray(0);
-	}
+	// Set up vertex and array buffers
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+	glBindVertexArray(VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO); // set type of buffer
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+	glEnableVertexAttribArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+	
 	
 	GLuint fbo, render_buf;
 	if (render_to_image) {
@@ -252,8 +252,6 @@ int main(int argc, char **argv)
 	// Here is where the actual program starts
 	std::default_random_engine rand_engine((std::random_device()()));
 	std::uniform_real_distribution<> vel_max_rand(- point_vel_max, point_vel_max);
-	std::uniform_real_distribution<> rand_in_margins_x(point_margins.x, 1 - point_margins.x);
-	std::uniform_real_distribution<> rand_in_margins_y(point_margins.y, 1 - point_margins.y);
 	
 	std::vector<vec2> points(num_points);
 	std::vector<float> point_speeds(num_points);
@@ -263,20 +261,23 @@ int main(int argc, char **argv)
 	
 	if (use_grid_points) {
 		int i = 0;
-		for (int x = 0; x < grid_dimensions.x; x++) {
+		for (int x = 0; x < grid_dimensions.x; x++)
 			for (int y = 0; y < grid_dimensions.y; y++) {
 				points.at(i) = { static_cast<float>(x) / (grid_dimensions.x - 1), static_cast<float>(y) / (grid_dimensions.y - 1) };
 				i++;
 			}
+	} else
+		for (auto &i : points) {
+			i = {
+				std::uniform_real_distribution<GLfloat>(point_margins.x, 1 - point_margins.x)(rand_engine),
+				std::uniform_real_distribution<GLfloat>(point_margins.y, 1 - point_margins.y)(rand_engine)
+			};
 		}
-	} else {
-		for (int i = 0; i < num_points; i++) {
-			points[i] = { static_cast<GLfloat>(rand_in_margins_x(rand_engine)),  static_cast<GLfloat>(rand_in_margins_y(rand_engine)) };
-		}
-	}
-	
-	for (int i = 0; i < num_points; i++) {
-		point_colors[i] = { // Populate with random colors
+		
+		
+		
+	for (auto &i : point_colors) {
+		i = { // Populate with random colors
 			std::uniform_real_distribution<float>(color_min.r, color_max.r)(rand_engine),
 			std::uniform_real_distribution<float>(color_min.g, color_max.g)(rand_engine),
 			std::uniform_real_distribution<float>(color_min.b, color_max.b)(rand_engine),
@@ -286,8 +287,7 @@ int main(int argc, char **argv)
 	for (auto &i : point_speeds)
 		i = std::uniform_real_distribution<>(-1, 1)(rand_engine);
 		
-	glUseProgram(shaderProgram);
-	
+		
 	int timeLocation = glGetUniformLocation(shaderProgram, "time");
 	if (timeLocation == -1)
 		puts("failed at time\n");
@@ -301,19 +301,13 @@ int main(int argc, char **argv)
 	double initial_time = glfwGetTime();
 	unsigned int elapsed_frames = 0;
 	
-	if (point_movement_type == movement::velocites) {
-		for (int i = 0; i < num_points; i++)
-			effective_points[i] = points[i];
+	if (point_movement_type == movement::velocity)
+		for (auto &i : point_velocities)
+			i = { static_cast<GLfloat>(vel_max_rand(rand_engine)), static_cast<GLfloat>(vel_max_rand(rand_engine))};
 			
-		for (int i = 0; i < num_points; i++) {
-			point_velocities[i] = { static_cast<GLfloat>(vel_max_rand(rand_engine)), static_cast<GLfloat>(vel_max_rand(rand_engine))};
-		}
-	}
+	effective_points = points;
 	
-	if (point_movement_type == movement::none)
-		effective_points = points;
-		
-		
+	
 	auto clamper = [](float in, float low, float high) {
 		// returns -1 if in is less than low, 0 if its between, and 1 if its above high
 		return (in > high) - (in < low);
@@ -325,6 +319,8 @@ int main(int argc, char **argv)
 		glPixelStorei(GL_PACK_ROW_LENGTH, img.step / img.elemSize());
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
 	}
+	
+	glUseProgram(shaderProgram);
 	
 	while (!glfwWindowShouldClose(window)) {
 		if (!render_to_image)
@@ -340,7 +336,7 @@ int main(int argc, char **argv)
 				};
 			}
 			
-		case movement::velocites:
+		case movement::velocity:
 			for (int i = 0; i < num_points; i ++) {
 				effective_points[i].x += point_velocities[i].x;
 				effective_points[i].y += point_velocities[i].y;
@@ -355,7 +351,7 @@ int main(int argc, char **argv)
 				if (point_velocities[i].y > point_vel_max) point_velocities[i].y *= 0.95;
 			}
 		case movement::none:
-		{} {} {} {} {} // do a whole lot of nothing
+			;
 		}
 		
 		
@@ -376,7 +372,7 @@ int main(int argc, char **argv)
 		// Push points to shader
 		glUniform2fv(pointsLocation, num_points, (GLfloat *) true_points.data());
 		glUniform3fv(pointColorsLocation, num_points, (GLfloat *) point_colors.data());
-		glUniform1f(timeLocation, time / 8);
+		glUniform1f(timeLocation, time);
 		
 		// Do all the stuff for opengl to actually do something
 		//if (!render_to_image)
