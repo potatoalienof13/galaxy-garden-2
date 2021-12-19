@@ -106,6 +106,8 @@ int main(int argc, char **argv)
 		TCLAP::SwitchArg ordering_greater_arg ("G", "greater", "Cull the less valueable points, instead of the most valueable.",false);
 		TCLAP::ValueArg<std::string> config_path_arg ("f", "filepath","Path to a directory containing vertex_shader.glsl and fragment_shader.glsl.", 0, get_config_dir(), "path");
 		TCLAP::ValueArg<std::string> image_filename_arg ("I", "image","Write an image to this file, do not open a window.", 0, "", "path");
+		TCLAP::ValueArg<int_vec2> window_size_arg("w", "window-size", "Size of window or image prodcued", 0,{600, 800}, "intxint");
+		
 		
 		cmd.add(num_points_arg);
 		cmd.add(num_used_arg);
@@ -126,6 +128,7 @@ int main(int argc, char **argv)
 		cmd.add(draw_circles_arg);
 		cmd.add(config_path_arg);
 		cmd.add(image_filename_arg);
+		cmd.add(window_size_arg);
 		// *INDENT-ON*
 		
 		cmd.parse(argc, argv);
@@ -134,28 +137,11 @@ int main(int argc, char **argv)
 		num_used = num_used_arg.getValue();
 		point_margins = margins_arg.getValue();
 		print_frame_times = print_frame_times_arg.getValue();
-		
-		if (use_grid_points_arg.isSet()) {
-			use_grid_points = true;
-			grid_dimensions = use_grid_points_arg.getValue();
-		} else
-			use_grid_points = false; // not really needed, but gets rid of a warning
-			
 		color_max = color_max_arg.getValue();
 		color_min = color_min_arg.getValue();
 		point_vel_max = point_vel_max_arg.getValue();
 		use_mouse_point = use_mouse_arg.getValue();
 		std::string point_movement_string = point_movement_type_arg.getValue();
-		
-		if (point_movement_string == "none")
-			point_movement_type = movement::none;
-		else if (point_movement_string == "circle")
-			point_movement_type = movement::circle;
-		else if (point_movement_string == "velocity")
-			point_movement_type = movement::velocites;
-		else
-			throw TCLAP::ArgException("Invalid movement type");
-			
 		sorting_algo_is_block = sorting_algo_is_block_arg.getValue();
 		sorting_algo = sorting_algo_arg.getValue();
 		value_algo_is_block = value_algo_is_block_arg.getValue();
@@ -163,33 +149,50 @@ int main(int argc, char **argv)
 		rotate_colors = rotate_colors_arg.getValue();
 		draw_circles = draw_circles_arg.getValue();
 		ordering_greater = ordering_greater_arg.getValue();
-		
+		render_to_image = image_filename_arg.isSet();
+		image_filename = image_filename_arg.getValue();
+		window_size = window_size_arg.getValue();
 		config_path = config_path_arg.getValue();
+		
 		if (! shaders_are_here(config_path)) {
 			std::cout << "Shaders were not found at " <<
 			          (config_path_arg.isSet() ? config_path : "XDG_CONFIG_HOME or ~/.config") << std::endl;
 			std::exit(2);
 		}
 		
-		render_to_image = image_filename_arg.isSet();
-		image_filename = image_filename_arg.getValue();
+		if (use_grid_points_arg.isSet()) {
+			use_grid_points = true;
+			grid_dimensions = use_grid_points_arg.getValue();
+			num_points = grid_dimensions.x * grid_dimensions.y;
+		} else
+			use_grid_points = false; // not really needed, but gets rid of a warning
+
+		if(num_used > num_points){
+			std::cout << "Numavg cannot be bigger then numpoints!" << std::endl; 
+			std::exit(3); 
+		}
 		
+		if (point_movement_string == "none")
+			point_movement_type = movement::none;
+		else if (point_movement_string == "circle")
+			point_movement_type = movement::circle;
+		else if (point_movement_string == "velocity")
+			point_movement_type = movement::velocites;
+		else throw TCLAP::ArgException("Invalid movement type");
+			
 	} catch (TCLAP::ArgException &e) {
 		std::cerr << "error:" << e.error() << std::endl;
 		std::exit(1);
 	}
-
+	
 	GLFWwindow *window = initialize_glfw(window_size.x, window_size.y, !render_to_image);
 	initialize_glad();
 	
-	Shader vertex_shader(GL_VERTEX_SHADER, "VERTEX");
+	Shader vertex_shader(GL_VERTEX_SHADER, "VERTEX"); // Vertex is simple, it barely does anything
 	vertex_shader.read_file(config_path + vertex_filename);
 	vertex_shader.compile();
 	
-	if (use_grid_points)
-		num_points = grid_dimensions.x * grid_dimensions.y;
-		
-	Shader fragment_shader(GL_FRAGMENT_SHADER, "FRAGMENT");
+	Shader fragment_shader(GL_FRAGMENT_SHADER, "FRAGMENT"); // Fragement shader needs to do a LOT of stuff
 	fragment_shader.source << "#version 460\n#define NUM_POINTS " << num_points <<
 	                       "\n#define NUM_USED " << num_used << "\n";
 	                       
@@ -212,33 +215,28 @@ int main(int argc, char **argv)
 	fragment_shader.compile();
 	
 	unsigned int shaderProgram = glCreateProgram();
-	
-	glAttachShader(shaderProgram, vertex_shader.id);
-	glAttachShader(shaderProgram, fragment_shader.id);
-	
-	glLinkProgram(shaderProgram);
-	check_link_success(shaderProgram);
-	
-	glDeleteShader(vertex_shader.id);
-	glDeleteShader(fragment_shader.id);
+	{	// Compile and link the shader program
+		glAttachShader(shaderProgram, vertex_shader.id);
+		glAttachShader(shaderProgram, fragment_shader.id);
+		glLinkProgram(shaderProgram);
+		check_link_success(shaderProgram);
+		glDeleteShader(vertex_shader.id);
+		glDeleteShader(fragment_shader.id);
+	}
 	
 	unsigned int VBO, VAO;
+	{	// Set up vertex and array buffers
+		glGenVertexArrays(1, &VAO);
+		glGenBuffers(1, &VBO);
+		glBindVertexArray(VAO);
+		glBindBuffer(GL_ARRAY_BUFFER, VBO); // set type of buffer
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+		glEnableVertexAttribArray(0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindVertexArray(0);
+	}
 	
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-	
-	glBindVertexArray(VAO);
-	
-	glBindBuffer(GL_ARRAY_BUFFER, VBO); // set type of buffer
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-	
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
-	glEnableVertexAttribArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	
-	glBindVertexArray(0);
-
-
 	GLuint fbo, render_buf;
 	if (render_to_image) {
 		glGenFramebuffers(1, &fbo);
@@ -247,6 +245,8 @@ int main(int argc, char **argv)
 		glRenderbufferStorage(GL_RENDERBUFFER, GL_BGRA, window_size.x, window_size.y);
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
 		glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, render_buf);
+		glDeleteFramebuffers(1, &fbo);
+		glDeleteRenderbuffers(1, &render_buf);
 	}
 	
 	// Here is where the actual program starts
@@ -312,22 +312,20 @@ int main(int argc, char **argv)
 	
 	if (point_movement_type == movement::none)
 		effective_points = points;
-
-	
+		
+		
 	auto clamper = [](float in, float low, float high) {
 		// returns -1 if in is less than low, 0 if its between, and 1 if its above high
 		return (in > high) - (in < low);
 	};
 	
-	cv::Mat img(window_size.x, window_size.y, CV_8UC3);
+	cv::Mat img(window_size.y, window_size.x, CV_8UC3);
 	if (render_to_image) {
 		glPixelStorei(GL_PACK_ALIGNMENT, (img.step & 3) ? 1 : 4);
 		glPixelStorei(GL_PACK_ROW_LENGTH, img.step / img.elemSize());
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
 	}
 	
-	if (render_to_image)
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
-
 	while (!glfwWindowShouldClose(window)) {
 		if (!render_to_image)
 			glfwGetWindowSize(window, &window_size.x, &window_size.y);
@@ -381,8 +379,8 @@ int main(int argc, char **argv)
 		glUniform1f(timeLocation, time / 8);
 		
 		// Do all the stuff for opengl to actually do something
-		if (!render_to_image)
-			processInput(window);
+		//if (!render_to_image)
+		processInput(window);
 		glBindVertexArray(VAO);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		
@@ -390,6 +388,8 @@ int main(int argc, char **argv)
 			glfwSwapBuffers(window);
 			glfwPollEvents();
 		}	else {
+			//glfwSwapBuffers(window);
+			
 			glReadBuffer(GL_COLOR_ATTACHMENT0);
 			glReadPixels(0, 0, img.cols, img.rows, GL_BGR, GL_UNSIGNED_BYTE, img.data);
 			break;
