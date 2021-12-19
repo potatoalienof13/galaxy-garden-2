@@ -29,13 +29,13 @@ float get_angle_with_rotation(in float adj, in vec2 v1, in vec2 v2)
 	change = normalize(change);
 	rotate(change, adj);
 	
-	return abs(atan(change.x / change.y));
-	//return abs(change.x) / 10;
+	//return abs(atan(change.x / change.y));
+	return abs(change.x) / 10;
 }
 
 float sorting_ranker(in vec2 point, in vec3 pc)
 {
-	float adj = time * 1 + pc.r * 2 * PI;
+	float adj = time * ROTATE_ANGLE * (pc.r-0.5) * 2 * PI;
 	float dist = distance(point, gl_FragCoord.xy);
 	float angle = get_angle_with_rotation(adj, point, gl_FragCoord.xy);
 #ifdef SORT_USE_BODY
@@ -47,7 +47,7 @@ float sorting_ranker(in vec2 point, in vec3 pc)
 
 float value_ranker(in vec2 point, in vec3 pc, in float value)
 {
-	float adj = time * 1 + pc.r * 2 * PI;
+	float adj = time * ROTATE_ANGLE * (pc.r-0.5) * 2 * PI;
 	float dist = distance(point, gl_FragCoord.xy);
 	float angle = get_angle_with_rotation(adj, point, gl_FragCoord.xy);
 #ifdef VALUE_USE_BODY
@@ -98,7 +98,7 @@ void main()
 		}
 	}
 	
-	int least_distance = 0;
+	/*int least_distance = 0;
 	
 	for (int j = 1; j < NUM_USED; j++) {
 		if (distances[top_distance_indexes[least_distance]] <  distances[top_distance_indexes[j]])
@@ -106,22 +106,25 @@ void main()
 	}
 	
 	float real_least_distance = distances[top_distance_indexes[least_distance]];
+	*/
 	
 	// This just counts up the total distance, so it can be used in the next for loop.
 	for (int i = 0; i < NUM_USED; i++) {
 		//distances[top_distance_indexes[i]] = distance(points[top_distance_indexes[i]], gl_FragCoord.xy);
 		//distances[top_distance_indexes[i]] = sin(distances[top_distance_indexes[i]] * 0.1  + 1);
 		//distances[top_distance_indexes[i]] -= real_least_distance;
+#ifdef VALUE_ALGO
 		distances[top_distance_indexes[i]] = value_ranker(points[top_distance_indexes[i]],
 		                                                  point_colors[top_distance_indexes[i]], distances[top_distance_indexes[i]]);
+#endif
 		total_distance += distances[top_distance_indexes[i]];
 	}
 	
 	// This line of code actually creates the return color, from the distances and point_colors given.
 	for (int i = 0; i < NUM_USED; i++) {
 #ifdef ROTATE_COLORS
-		vec3 color = (sin(point_colors[top_distance_indexes[i]] * 2 * PI * time +
-		                  PI * 2 * point_colors[top_distance_indexes[i - 1]]) + 1) / 2;
+		vec3 color = (sin(point_colors[top_distance_indexes[i]] * 2 * PI * time * ROTATE_COLORS +
+		                  PI * 2 * point_colors[top_distance_indexes[i]]) + 1) / 2;
 #else
 		vec3 color = point_colors[top_distance_indexes[i]];
 #endif

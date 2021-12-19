@@ -77,14 +77,15 @@ int main(int argc, char **argv)
 	movement point_movement_type;
 	std::string sorting_algo;
 	bool sorting_algo_is_block;
-	bool rotate_colors;
 	bool draw_circles;
 	std::string value_algo;
 	bool value_algo_is_block;
 	bool ordering_greater;
 	bool render_to_image;
 	std::string image_filename;
-	
+	float color_rotation_speed;
+	float angle_rotation_speed; 
+
 	int_vec2 window_size = {800, 600};
 	std::string config_path;
 	
@@ -104,14 +105,15 @@ int main(int argc, char **argv)
 		TCLAP::SwitchArg sorting_algo_is_block_arg ("E", "is-block", "Is the sorting algorithim provided meant to be an entire block.",false);
 		TCLAP::ValueArg<std::string> sorting_algo_arg ("e", "sorter","Ranking algorithim. The variables 'dist', 'angle', 'point', and 'pc' are available.", 0, "dist", "string");
 		TCLAP::SwitchArg value_algo_is_block_arg ("V", "vis-block", "Is the value algorithim provided meant to be an entire block.",false);
-		TCLAP::ValueArg<std::string> value_algo_arg ("v", "valuer","Algorithim that is used for the weighted average of the colors. The same variables as the ranking algo are available, as well as `value`.", 0, "dist", "string");
-		TCLAP::SwitchArg rotate_colors_arg ("r", "rotate-colors", "Fade between different colors.",false);
+		TCLAP::ValueArg<std::string> value_algo_arg ("v", "valuer","Algorithim that is used for the weighted average of the colors. The same variables as the ranking algo are available, as well as `value`.", 0, "value", "string");
 		TCLAP::SwitchArg draw_circles_arg ("d", "draw-circles", "Draw circles at the location of every point.",false);
 		TCLAP::SwitchArg ordering_greater_arg ("G", "greater", "Cull the less valueable points, instead of the most valueable.",false);
 		TCLAP::ValueArg<std::string> config_path_arg ("f", "filepath","Path to a directory containing vertex_shader.glsl and fragment_shader.glsl.", 0, get_config_dir(), "path");
 		TCLAP::ValueArg<std::string> image_filename_arg ("I", "image","Write an image to this file, do not open a window.", 0, "", "path");
 		TCLAP::ValueArg<int_vec2> window_size_arg("w", "window-size", "Size of window or image prodcued", 0,{600, 800}, "intxint");
-		
+		TCLAP::ValueArg<float> color_rotation_speed_arg ("r", "color-speed","Color rotation speed. Defaults to not rotating.", 0, 0, "float");
+		TCLAP::ValueArg<float> angle_rotation_speed_arg ("R", "rotate-speed","Angle rotation speed.", 0, 0, "float");
+
 		
 		cmd.add(num_points_arg);
 		cmd.add(num_used_arg);
@@ -128,11 +130,12 @@ int main(int argc, char **argv)
 		cmd.add(value_algo_arg);
 		cmd.add(value_algo_is_block_arg);
 		cmd.add(ordering_greater_arg); 
-		cmd.add(rotate_colors_arg);
+		cmd.add(color_rotation_speed_arg);
 		cmd.add(draw_circles_arg);
 		cmd.add(config_path_arg);
 		cmd.add(image_filename_arg);
 		cmd.add(window_size_arg);
+		cmd.add(angle_rotation_speed_arg);
 		// *INDENT-ON*
 		
 		cmd.parse(argc, argv);
@@ -150,13 +153,14 @@ int main(int argc, char **argv)
 		sorting_algo = sorting_algo_arg.getValue();
 		value_algo_is_block = value_algo_is_block_arg.getValue();
 		value_algo = value_algo_arg.getValue();
-		rotate_colors = rotate_colors_arg.getValue();
+		color_rotation_speed = color_rotation_speed_arg.getValue();
 		draw_circles = draw_circles_arg.getValue();
 		ordering_greater = ordering_greater_arg.getValue();
 		render_to_image = image_filename_arg.isSet();
 		image_filename = image_filename_arg.getValue();
 		window_size = window_size_arg.getValue();
 		config_path = config_path_arg.getValue();
+		angle_rotation_speed = angle_rotation_speed_arg.getValue();
 		
 		if (! shaders_are_here(config_path)) {
 			std::cout << "Shaders were not found at " <<
@@ -198,13 +202,14 @@ int main(int argc, char **argv)
 	                       
 	if (draw_circles)
 		fragment_shader.source << "#define DRAW_CIRCLES\n";
-	if (rotate_colors)
-		fragment_shader.source << "#define ROTATE_COLORS\n";
 	if (sorting_algo_is_block)
 		fragment_shader.source << "#define SORT_USE_BODY\n";
 	if (value_algo_is_block)
 		fragment_shader.source << "#define VALUE_USE_BODY\n";
-		
+
+
+	fragment_shader.source << "#define ROTATE_COLORS " << color_rotation_speed << std::endl;
+	fragment_shader.source << "#define ROTATE_ANGLE " << angle_rotation_speed << std::endl;
 	fragment_shader.source << "#define VALUE_ALGO " << value_algo << std::endl;
 	fragment_shader.source << "#define SORT_ALGO " << sorting_algo << std::endl;
 	fragment_shader.source << "#define ORDERING " << (ordering_greater ? ">" : "<") << std::endl;
@@ -287,17 +292,18 @@ int main(int argc, char **argv)
 	for (auto &i : point_speeds)
 		i = std::uniform_real_distribution<>(-1, 1)(rand_engine);
 		
-		
+	// These will fail if the variables are not actually used in the progam, its not serious. 
 	int timeLocation = glGetUniformLocation(shaderProgram, "time");
-	if (timeLocation == -1)
+	if (timeLocation == GL_INVALID_VALUE)
 		puts("failed at time\n");
 	int pointsLocation = glGetUniformLocation(shaderProgram, "points");
-	if (pointsLocation == -1)
+	if (pointsLocation == GL_INVALID_VALUE)
 		puts("failed at points\n");
 	int pointColorsLocation = glGetUniformLocation(shaderProgram, "point_colors");
-	if (pointColorsLocation == -1)
+	if (pointColorsLocation == GL_INVALID_VALUE)
 		puts("failed at colors\n");
-		
+
+	std::cout << std::endl; 
 	double initial_time = glfwGetTime();
 	unsigned int elapsed_frames = 0;
 	
@@ -375,7 +381,6 @@ int main(int argc, char **argv)
 		glUniform1f(timeLocation, time);
 		
 		// Do all the stuff for opengl to actually do something
-		//if (!render_to_image)
 		processInput(window);
 		glBindVertexArray(VAO);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
