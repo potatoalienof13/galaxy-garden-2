@@ -1,7 +1,9 @@
-### galaxy-garden-2
+####### galaxy-garden-2
 
 An improved version of galaxy-garden that uses opengl instead of opencv.
 This has a dependency on glfw3, tclap, and opencv.
+
+See `gg2 --help` for a basic idea of how to use it.
 
 ## Examples
 
