@@ -84,8 +84,8 @@ int main(int argc, char **argv)
 	bool render_to_image;
 	std::string image_filename;
 	float color_rotation_speed;
-	float angle_rotation_speed; 
-
+	float angle_rotation_speed;
+	
 	int_vec2 window_size = {800, 600};
 	std::string config_path;
 	
@@ -113,7 +113,7 @@ int main(int argc, char **argv)
 		TCLAP::ValueArg<int_vec2> window_size_arg("w", "window-size", "Size of window or image prodcued", 0,{600, 800}, "intxint");
 		TCLAP::ValueArg<float> color_rotation_speed_arg ("r", "color-speed","Color rotation speed. Defaults to not rotating.", 0, 0, "float");
 		TCLAP::ValueArg<float> angle_rotation_speed_arg ("R", "rotate-speed","Angle rotation speed.", 0, 0, "float");
-
+		
 		
 		cmd.add(num_points_arg);
 		cmd.add(num_used_arg);
@@ -206,8 +206,8 @@ int main(int argc, char **argv)
 		fragment_shader.source << "#define SORT_USE_BODY\n";
 	if (value_algo_is_block)
 		fragment_shader.source << "#define VALUE_USE_BODY\n";
-
-
+		
+		
 	fragment_shader.source << "#define ROTATE_COLORS " << color_rotation_speed << std::endl;
 	fragment_shader.source << "#define ROTATE_ANGLE " << angle_rotation_speed << std::endl;
 	fragment_shader.source << "#define VALUE_ALGO " << value_algo << std::endl;
@@ -292,7 +292,7 @@ int main(int argc, char **argv)
 	for (auto &i : point_speeds)
 		i = std::uniform_real_distribution<>(-1, 1)(rand_engine);
 		
-	// These will fail if the variables are not actually used in the progam, its not serious. 
+	// These will fail if the variables are not actually used in the progam, its not serious.
 	int timeLocation = glGetUniformLocation(shaderProgram, "time");
 	if (timeLocation == GL_INVALID_VALUE)
 		puts("failed at time\n");
@@ -302,8 +302,8 @@ int main(int argc, char **argv)
 	int pointColorsLocation = glGetUniformLocation(shaderProgram, "point_colors");
 	if (pointColorsLocation == GL_INVALID_VALUE)
 		puts("failed at colors\n");
-
-	std::cout << std::endl; 
+		
+	std::cout << std::endl;
 	double initial_time = glfwGetTime();
 	unsigned int elapsed_frames = 0;
 	
@@ -337,18 +337,18 @@ int main(int argc, char **argv)
 		case movement::circle:
 			for (int i = 0; i < num_points; i++) { // move the points in a circle
 				effective_points[i] = {
-					points[i].x + std::sin(time * 1 * point_speeds[i]) / 200,
-					points[i].y + std::cos(time * 1 * point_speeds[i]) / 200
+					static_cast<GLfloat>(points[i].x + (std::sin(time *point_vel_max * 1 * point_speeds[i]) * 0.1)),
+					static_cast<GLfloat>(points[i].y + (std::cos(time *point_vel_max * 1 * point_speeds[i]) * 0.1))
 				};
 			}
-			
+			break;
 		case movement::velocity:
 			for (int i = 0; i < num_points; i ++) {
 				effective_points[i].x += point_velocities[i].x;
 				effective_points[i].y += point_velocities[i].y;
 				
-				point_velocities[i].x += -0.001 * clamper(effective_points[i].x, point_margins.x, 1 - point_margins.x);
-				point_velocities[i].y += -0.001 * clamper(effective_points[i].y, point_margins.y, 1 - point_margins.y);
+				point_velocities[i].x += -0.1 * point_vel_max * clamper(effective_points[i].x, point_margins.x, 1 - point_margins.x);
+				point_velocities[i].y += -0.1 * point_vel_max * clamper(effective_points[i].y, point_margins.y, 1 - point_margins.y);
 				
 				point_velocities[i].x += std::sin(time + point_colors[i].r * 360) * point_vel_max / 100;
 				point_velocities[i].y += std::cos(time + point_colors[i].g * 360) * point_vel_max / 100;
@@ -356,6 +356,7 @@ int main(int argc, char **argv)
 				if (point_velocities[i].x > point_vel_max) point_velocities[i].x *= 0.95;
 				if (point_velocities[i].y > point_vel_max) point_velocities[i].y *= 0.95;
 			}
+			break;
 		case movement::none:
 			;
 		}
