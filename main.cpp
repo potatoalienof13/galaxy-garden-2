@@ -23,8 +23,6 @@ enum class movement {
 	velocity,
 };
 
-
-
 // *INDENT-OFF*
 constexpr float vertices[] = { // vertices for a rectangle that fills the entire screen
 		-1.f, -1.f, 0.0f,
@@ -36,6 +34,7 @@ constexpr float vertices[] = { // vertices for a rectangle that fills the entire
 		 1.f, -1.f, 0.0f
 };
 // *INDENT-ON*
+
 void shaders_not_found_error() {
 	std::cout << "Could not find shaders at either the path provided to -f, ~/.config, or $XDG_CONFIG_HOME\nExiting" <<
 	          std::endl;
@@ -191,12 +190,14 @@ int main(int argc, char **argv)
 	
 	GLFWwindow *window = initialize_glfw(window_size.x, window_size.y, !render_to_image);
 	initialize_glad();
+
+	// Initializing and constructing the shaders. 
 	
 	Shader vertex_shader(GL_VERTEX_SHADER, "VERTEX"); // Vertex is simple, it barely does anything
 	vertex_shader.read_file(config_path + vertex_filename);
 	vertex_shader.compile();
 	
-	Shader fragment_shader(GL_FRAGMENT_SHADER, "FRAGMENT"); // Fragement shader needs to do a LOT of stuff
+	Shader fragment_shader(GL_FRAGMENT_SHADER, "FRAGMENT"); // Fragment shader needs to do most of the heavy lifting
 	fragment_shader.source << "#version 460\n#define NUM_POINTS " << num_points <<
 	                       "\n#define NUM_USED " << num_used << "\n";
 	                       
@@ -207,13 +208,12 @@ int main(int argc, char **argv)
 	if (value_algo_is_block)
 		fragment_shader.source << "#define VALUE_USE_BODY\n";
 		
-		
 	fragment_shader.source << "#define ROTATE_COLORS " << color_rotation_speed << std::endl;
 	fragment_shader.source << "#define ROTATE_ANGLE " << angle_rotation_speed << std::endl;
 	fragment_shader.source << "#define VALUE_ALGO " << value_algo << std::endl;
 	fragment_shader.source << "#define SORT_ALGO " << sorting_algo << std::endl;
 	fragment_shader.source << "#define ORDERING " << (ordering_greater ? ">" : "<") << std::endl;
-	fragment_shader.source << "#line 1\n"; // for proper error messages
+	fragment_shader.source << "#line 1\n"; // Without this glsl compilation issues would have the wrong line numbers. 
 	
 	// appends the contents of that file to the existing contents
 	fragment_shader.read_file(config_path + fragment_filename);
@@ -243,8 +243,9 @@ int main(int argc, char **argv)
 	
 	
 	GLuint fbo, render_buf;
+	cv::Mat img(window_size.y, window_size.x, CV_8UC3);
 	if (render_to_image) {
-		glGenFramebuffers(1, &fbo);
+		glGenFramebuffers(1, &fbo); // Set up framebuffer
 		glGenRenderbuffers(1, &render_buf);
 		glBindRenderbuffer(GL_RENDERBUFFER, render_buf);
 		glRenderbufferStorage(GL_RENDERBUFFER, GL_BGRA, window_size.x, window_size.y);
@@ -252,6 +253,10 @@ int main(int argc, char **argv)
 		glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, render_buf);
 		glDeleteFramebuffers(1, &fbo);
 		glDeleteRenderbuffers(1, &render_buf);
+
+		glPixelStorei(GL_PACK_ALIGNMENT, (img.step & 3) ? 1 : 4); // Set up image. 
+		glPixelStorei(GL_PACK_ROW_LENGTH, img.step / img.elemSize());
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
 	}
 	
 	// Here is where the actual program starts
@@ -278,8 +283,6 @@ int main(int argc, char **argv)
 				std::uniform_real_distribution<GLfloat>(point_margins.y, 1 - point_margins.y)(rand_engine)
 			};
 		}
-		
-		
 		
 	for (auto &i : point_colors) {
 		i = { // Populate with random colors
@@ -313,19 +316,11 @@ int main(int argc, char **argv)
 			
 	effective_points = points;
 	
-	
 	auto clamper = [](float in, float low, float high) {
 		// returns -1 if in is less than low, 0 if its between, and 1 if its above high
 		return (in > high) - (in < low);
 	};
-	
-	cv::Mat img(window_size.y, window_size.x, CV_8UC3);
-	if (render_to_image) {
-		glPixelStorei(GL_PACK_ALIGNMENT, (img.step & 3) ? 1 : 4);
-		glPixelStorei(GL_PACK_ROW_LENGTH, img.step / img.elemSize());
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
-	}
-	
+
 	glUseProgram(shaderProgram);
 	
 	while (!glfwWindowShouldClose(window)) {
@@ -361,7 +356,6 @@ int main(int argc, char **argv)
 			;
 		}
 		
-		
 		std::vector<vec2> true_points(num_points);
 		
 		for (int i = 0; i < num_points; i++) {
@@ -390,8 +384,6 @@ int main(int argc, char **argv)
 			glfwSwapBuffers(window);
 			glfwPollEvents();
 		}	else {
-			//glfwSwapBuffers(window);
-			
 			glReadBuffer(GL_COLOR_ATTACHMENT0);
 			glReadPixels(0, 0, img.cols, img.rows, GL_BGR, GL_UNSIGNED_BYTE, img.data);
 			break;
@@ -408,6 +400,7 @@ int main(int argc, char **argv)
 			}
 		}
 	}
+	
 	if (render_to_image) {
 		cv::flip(img, img, 0);
 		cv::imwrite(image_filename, img);
