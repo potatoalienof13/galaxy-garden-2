@@ -38,7 +38,7 @@ float get_angle_with_rotation(in float adj, in vec2 v1, in vec2 v2)
 
 float sorting_ranker(in vec2 point, in vec3 pc)
 {
-	float adj = time * ROTATE_ANGLE * (pc.r - 0.5) * 2 * PI;
+	float adj = time * ROTATE_ANGLE * (pc.r - 0.5) * 2 * PI + pc.g * 2 * PI;
 	float dist = distance(point, gl_FragCoord.xy);
 	float angle = get_angle_with_rotation(adj, point, gl_FragCoord.xy);
 #ifdef SORT_USE_BODY
@@ -50,7 +50,7 @@ float sorting_ranker(in vec2 point, in vec3 pc)
 
 float value_ranker(in vec2 point, in vec3 pc, in float value)
 {
-	float adj = time * ROTATE_ANGLE * (pc.r - 0.5) * 2 * PI;
+	float adj = time * ROTATE_ANGLE * (pc.r - 0.5) * 2 * PI + pc.g * 2 * PI;
 	float dist = distance(point, gl_FragCoord.xy);
 	float angle = get_angle_with_rotation(adj, point, gl_FragCoord.xy);
 #ifdef VALUE_USE_BODY
