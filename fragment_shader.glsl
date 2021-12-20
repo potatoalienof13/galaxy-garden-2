@@ -18,6 +18,9 @@ uniform float speed;
 
 float distances[NUM_POINTS];
 
+float psin(in float f) { return sin(f) + 1 ;}
+float pcos(in float f) { return cos(f) + 1 ;}
+
 void rotate(inout vec2 p0, in float angle)
 {
 	p0 = vec2(p0.x * cos(angle) - p0.y * sin(angle), p0.x * sin(angle) - p0.y * cos(angle));
@@ -35,7 +38,7 @@ float get_angle_with_rotation(in float adj, in vec2 v1, in vec2 v2)
 
 float sorting_ranker(in vec2 point, in vec3 pc)
 {
-	float adj = time * ROTATE_ANGLE * (pc.r-0.5) * 2 * PI;
+	float adj = time * ROTATE_ANGLE * (pc.r - 0.5) * 2 * PI;
 	float dist = distance(point, gl_FragCoord.xy);
 	float angle = get_angle_with_rotation(adj, point, gl_FragCoord.xy);
 #ifdef SORT_USE_BODY
@@ -47,7 +50,7 @@ float sorting_ranker(in vec2 point, in vec3 pc)
 
 float value_ranker(in vec2 point, in vec3 pc, in float value)
 {
-	float adj = time * ROTATE_ANGLE * (pc.r-0.5) * 2 * PI;
+	float adj = time * ROTATE_ANGLE * (pc.r - 0.5) * 2 * PI;
 	float dist = distance(point, gl_FragCoord.xy);
 	float angle = get_angle_with_rotation(adj, point, gl_FragCoord.xy);
 #ifdef VALUE_USE_BODY
