@@ -17,3 +17,7 @@ See `gg2 --help` for a basic idea of how to use it.
 
 ![gg2 -e '20*(sin(dist/10)+1)+angle*dist' -w 1920x1080 -I pics/thing.png](pics/thing.png)
 
+![gg2 -p 'fg = fg + 100*sin(fg);' -s 0.001 -a 3 -n 20 -e 'dist' -y none -g 9x9 -I pics/prerun_example.png -w 1920x1080](pics/prerun_example.png)
+
+![gg2 -p 'fg = fg - 2*mod(fg,20);' -s 0.001 -a 3 -n 20 -e 'dist' -y none -I pics/prerun_2.png -w 1920x1080](pics/prerun_2.png)
+
