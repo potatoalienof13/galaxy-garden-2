@@ -1,4 +1,3 @@
-#line 2
 // NUM_USED and NUM_POINTS are defined before the start of this file.
 // The #defines for them are prepended to this file.
 
@@ -15,6 +14,10 @@ uniform float time;
 uniform vec2 points[NUM_POINTS];
 uniform vec3 point_colors[NUM_POINTS];
 uniform float speed;
+
+vec4 fg = gl_FragCoord;
+
+
 
 float distances[NUM_POINTS];
 
@@ -39,8 +42,8 @@ float get_angle_with_rotation(in float adj, in vec2 v1, in vec2 v2)
 float sorting_ranker(in vec2 point, in vec3 pc)
 {
 	float adj = time * ROTATE_ANGLE * (pc.r - 0.5) * 2 * PI + pc.g * 2 * PI;
-	float dist = distance(point, gl_FragCoord.xy);
-	float angle = get_angle_with_rotation(adj, point, gl_FragCoord.xy);
+	float dist = distance(point, fg.xy);
+	float angle = get_angle_with_rotation(adj, point, fg.xy);
 #ifdef SORT_USE_BODY
 	SORT_ALGO
 #else
@@ -51,8 +54,8 @@ float sorting_ranker(in vec2 point, in vec3 pc)
 float value_ranker(in vec2 point, in vec3 pc, in float value)
 {
 	float adj = time * ROTATE_ANGLE * (pc.r - 0.5) * 2 * PI + pc.g * 2 * PI;
-	float dist = distance(point, gl_FragCoord.xy);
-	float angle = get_angle_with_rotation(adj, point, gl_FragCoord.xy);
+	float dist = distance(point, fg.xy);
+	float angle = get_angle_with_rotation(adj, point, fg.xy);
 #ifdef VALUE_USE_BODY
 	VALUE_ALGO
 #else
@@ -63,6 +66,8 @@ float value_ranker(in vec2 point, in vec3 pc, in float value)
 void main()
 {
 	FragColor = vec4(0., 0., 0., 0.);
+
+	PRERUN_BLOCK // Expands to -p argument
 	
 	int top_distance_indexes[NUM_USED];
 	float total_distance = 0;
@@ -113,7 +118,7 @@ void main()
 	
 	// This just counts up the total distance, so it can be used in the next for loop.
 	for (int i = 0; i < NUM_USED; i++) {
-		//distances[top_distance_indexes[i]] = distance(points[top_distance_indexes[i]], gl_FragCoord.xy);
+		//distances[top_distance_indexes[i]] = distance(points[top_distance_indexes[i]], fg.xy);
 		//distances[top_distance_indexes[i]] = sin(distances[top_distance_indexes[i]] * 0.1  + 1);
 		//distances[top_distance_indexes[i]] -= real_least_distance;
 #ifdef VALUE_ALGO
@@ -137,7 +142,7 @@ void main()
 	// This draws a circle around all points, useful for making sure things work.
 #ifdef DRAW_CIRCLES
 	for (int i = 0; i < NUM_POINTS; i++) {
-		if (distance(points[i], gl_FragCoord.xy) < 10)
+		if (distance(points[i], fg.xy) < 10)
 			FragColor = vec4(1., 1., 1., 1.);
 	}
 #endif

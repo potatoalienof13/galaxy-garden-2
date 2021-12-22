@@ -84,7 +84,8 @@ int main(int argc, char **argv)
 	std::string image_filename;
 	float color_rotation_speed;
 	float angle_rotation_speed;
-	
+	float cirle_rotation_circumference;
+	std::string prerun_block; 
 	int_vec2 window_size = {800, 600};
 	std::string config_path;
 	
@@ -112,7 +113,8 @@ int main(int argc, char **argv)
 		TCLAP::ValueArg<int_vec2> window_size_arg("w", "window-size", "Size of window or image prodcued", 0,{600, 800}, "intxint");
 		TCLAP::ValueArg<float> color_rotation_speed_arg ("r", "color-speed","Color rotation speed. Defaults to not rotating.", 0, 0, "float");
 		TCLAP::ValueArg<float> angle_rotation_speed_arg ("R", "rotate-speed","Angle rotation speed.", 0, 0, "float");
-		
+		TCLAP::ValueArg<float> cirle_rotation_circumference_arg ("c", "circle-circ","Size of the circles when using -y circle", 0, 0.1, "float");
+		TCLAP::ValueArg<std::string> prerun_block_arg ("p", "prerun-block","Code that runs at the very beginning of the shader.", 0, "", "string");
 		
 		cmd.add(num_points_arg);
 		cmd.add(num_used_arg);
@@ -135,6 +137,8 @@ int main(int argc, char **argv)
 		cmd.add(image_filename_arg);
 		cmd.add(window_size_arg);
 		cmd.add(angle_rotation_speed_arg);
+		cmd.add(cirle_rotation_circumference_arg);
+		cmd.add(prerun_block_arg); 
 		// *INDENT-ON*
 		
 		cmd.parse(argc, argv);
@@ -160,6 +164,8 @@ int main(int argc, char **argv)
 		window_size = window_size_arg.getValue();
 		config_path = config_path_arg.getValue();
 		angle_rotation_speed = angle_rotation_speed_arg.getValue();
+		cirle_rotation_circumference = cirle_rotation_circumference_arg.getValue();
+		prerun_block = prerun_block_arg.getValue(); 
 		
 		if (! shaders_are_here(config_path)) {
 			std::cout << "Shaders were not found at " <<
@@ -190,8 +196,8 @@ int main(int argc, char **argv)
 	
 	GLFWwindow *window = initialize_glfw(window_size.x, window_size.y, !render_to_image);
 	initialize_glad();
-
-	// Initializing and constructing the shaders. 
+	
+	// Initializing and constructing the shaders.
 	
 	Shader vertex_shader(GL_VERTEX_SHADER, "VERTEX"); // Vertex is simple, it barely does anything
 	vertex_shader.read_file(config_path + vertex_filename);
@@ -213,7 +219,8 @@ int main(int argc, char **argv)
 	fragment_shader.source << "#define VALUE_ALGO " << value_algo << std::endl;
 	fragment_shader.source << "#define SORT_ALGO " << sorting_algo << std::endl;
 	fragment_shader.source << "#define ORDERING " << (ordering_greater ? ">" : "<") << std::endl;
-	fragment_shader.source << "#line 1\n"; // Without this glsl compilation issues would have the wrong line numbers. 
+	fragment_shader.source << "#define PRERUN_BLOCK " << prerun_block << std::endl; 
+	fragment_shader.source << "#line 1\n"; // Without this glsl compilation issues would have the wrong line numbers.
 	
 	// appends the contents of that file to the existing contents
 	fragment_shader.read_file(config_path + fragment_filename);
@@ -253,8 +260,8 @@ int main(int argc, char **argv)
 		glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, render_buf);
 		glDeleteFramebuffers(1, &fbo);
 		glDeleteRenderbuffers(1, &render_buf);
-
-		glPixelStorei(GL_PACK_ALIGNMENT, (img.step & 3) ? 1 : 4); // Set up image. 
+		
+		glPixelStorei(GL_PACK_ALIGNMENT, (img.step & 3) ? 1 : 4); // Set up image.
 		glPixelStorei(GL_PACK_ROW_LENGTH, img.step / img.elemSize());
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
 	}
@@ -320,7 +327,7 @@ int main(int argc, char **argv)
 		// returns -1 if in is less than low, 0 if its between, and 1 if its above high
 		return (in > high) - (in < low);
 	};
-
+	
 	glUseProgram(shaderProgram);
 	
 	while (!glfwWindowShouldClose(window)) {
@@ -332,8 +339,8 @@ int main(int argc, char **argv)
 		case movement::circle:
 			for (int i = 0; i < num_points; i++) { // move the points in a circle
 				effective_points[i] = {
-					static_cast<GLfloat>(points[i].x + (std::sin(time *point_vel_max * 1 * point_speeds[i]) * 0.1)),
-					static_cast<GLfloat>(points[i].y + (std::cos(time *point_vel_max * 1 * point_speeds[i]) * 0.1))
+					static_cast<GLfloat>(points[i].x + (std::sin(time * point_vel_max * point_speeds[i]) * cirle_rotation_circumference)),
+					static_cast<GLfloat>(points[i].y + (std::cos(time * point_vel_max * point_speeds[i]) * cirle_rotation_circumference))
 				};
 			}
 			break;
