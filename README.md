@@ -27,3 +27,6 @@ See `gg2 --help` for a basic idea of how to use it.
 `gg2 -p 'fg = fg - 2*mod(fg,20);' -s 0.001 -a 3 -n 20 -e 'dist' -y none -I pics/prerun_2.png -w 1920x1080`
 ![picture](pics/prerun_2.png)
 
+`gg2 -e '(cos((gl_FragCoord.xy+point)/100)+vec2(1,1)).x * (sin((gl_FragCoord.xy+point)/100)+vec2(1,1)).y + psin(dist/20)*0.5' -s 0.001 -a 2 -n 4 -p 'fg = fg - 1*cos(fg/5)*5;' -I pics/no_clue_what_to_name_these.png -w 1920x1080`
+![picture](pics/no_clue_what_to_name_these.png)
+
