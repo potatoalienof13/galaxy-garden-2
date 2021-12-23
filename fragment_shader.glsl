@@ -17,12 +17,14 @@ uniform float speed;
 
 vec4 fg = gl_FragCoord;
 
-
+// Only way I could find to generalize these functions. 
+#define CREATE_PFUNC(type) type psin(in type f) { return sin(f) + 1 ; }; type pcos(in type f) { return cos(f) + 1 ; }
+CREATE_PFUNC(float);
+CREATE_PFUNC(vec2);
+CREATE_PFUNC(vec3);
+CREATE_PFUNC(vec4); 
 
 float distances[NUM_POINTS];
-
-float psin(in float f) { return sin(f) + 1 ;}
-float pcos(in float f) { return cos(f) + 1 ;}
 
 void rotate(inout vec2 p0, in float angle)
 {
