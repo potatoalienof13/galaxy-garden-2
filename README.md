@@ -30,3 +30,5 @@ See `gg2 --help` for a basic idea of how to use it.
 `gg2 -e '(cos((gl_FragCoord.xy+point)/100)+vec2(1,1)).x * (sin((gl_FragCoord.xy+point)/100)+vec2(1,1)).y + psin(dist/20)*0.5' -s 0.001 -a 2 -n 4 -p 'fg = fg - 1*cos(fg/5)*5;' -I pics/no_clue_what_to_name_these.png -w 1920x1080`
 ![picture](pics/no_clue_what_to_name_these.png)
 
+`gg2 -E -e 'vec2 e=pcos((fg.xy+point)/100); return e.x*e.y+sin(dist/10);' -s 0.001 -a 2 -n 3 -I pics/blob.png -w 1920x1080`
+![picture](pics/blob.png)
