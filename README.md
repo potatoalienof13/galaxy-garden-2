@@ -1,6 +1,6 @@
 # galaxy-garden-2
 
-An improved version of galaxy-garden that uses opengl instead of opencv.
+An improved version of galaxy-garden that uses opengl instead of opencv for rendering. Opencv is just used to save images. 
 This has a dependency on glfw3, tclap, and opencv.
 
 See `gg2 --help` for a basic idea of how to use it.
