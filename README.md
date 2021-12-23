@@ -5,6 +5,9 @@ This has a dependency on glfw3, tclap, and opencv.
 
 See `gg2 --help` for a basic idea of how to use it.
 
+## Building
+`meson builddir && cd builddir && ninja`
+
 ## Examples
 `gg2 -e 'angle' -I pics/angles.png -w 1920x1080 -r 121`
 ![picture](pics/angles.png)
