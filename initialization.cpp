@@ -31,7 +31,7 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 	glViewport(0, 0, width, height);
 }
 
-GLFWwindow *initialize_glfw(int width, int height,bool show_window)
+GLFWwindow *initialize_glfw(int width, int height, bool show_window, int multisampling)
 {
 
 	glfwInit();
@@ -39,7 +39,9 @@ GLFWwindow *initialize_glfw(int width, int height,bool show_window)
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_VISIBLE, show_window ? GLFW_TRUE : GLFW_FALSE); 
-
+	if(multisampling){
+		glfwWindowHint(GLFW_SAMPLES,multisampling); 
+	}
 	GLFWwindow *window =
 	    glfwCreateWindow(width, height, "opengle", NULL, NULL);
 	    

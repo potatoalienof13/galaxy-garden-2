@@ -68,6 +68,7 @@ float value_ranker(in vec2 point, in vec3 pc, in float value)
 void main()
 {
 	FragColor = vec4(0., 0., 0., 0.);
+	fg.xy += gl_SamplePosition; // For multisampling 
 
 	PRERUN_BLOCK // Expands to -p argument
 	
