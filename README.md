@@ -32,3 +32,10 @@ See `gg2 --help` for a basic idea of how to use it.
 
 `gg2 -E -e 'vec2 e=pcos((fg.xy+point)/100); return e.x*e.y+sin(dist/10);' -s 0.001 -a 2 -n 3 -I pics/blob.png -w 1920x1080`
 ![picture](pics/blob.png)
+
+`gg2 -E -e 'vec2 e=pcos((fg.xy+point)/100); return e.x*e.y+psin(dist/10)*0.2;' -p 'fg += 10*sin(fg/10);' -s 0.001 -a 2 -n 5 -w 1920x1080 -I pics/didntexpecthisbutsure.png`
+![picture](pics/didntexpecthisbutsure.png)
+
+`gg2 -E -e 'vec2 e=pcos((fg.xy+point)/100); return e.x*e.y+psin(dist/10)*0.2;' -p 'fg += 10*sin(fg/2);' -s 0.001 -a 2 -n 5 -I pics/what_i_was_actually_going_for.png -w 1920x1080`
+![picture](pics/what_i_was_actually_going_for.png)
+
