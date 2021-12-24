@@ -36,7 +36,8 @@ float get_angle_with_rotation(in float adj, in vec2 v1, in vec2 v2)
 	vec2 change = v1 - v2;
 	change = normalize(change);
 	rotate(change, adj);
-	
+
+	// using atan for the angle is working kinda weird, i switched it out for this weirdness
 	//return abs(atan(change.x / change.y));
 	return abs(change.x) / 10;
 }
@@ -78,52 +79,31 @@ void main()
 	// Distance ranking.
 	for (int i = 0; i < points.length(); i++)
 		distances[i] = sorting_ranker(points[i], point_colors[i]);
-		
-	//distances[0] = 100;
-	
-	// The loop after needs this array to already be initialized
+
+
+	// Add the indexes of the points with the most valueable distance values to top_distance_indexes
 	for (int i = 0; i < NUM_USED; i++)
 		top_distance_indexes[i] = i;
-		
-	// This for loop adds the indexes of the top values in
-	// Start at NUM_USED because the slots before that were already filled.
 	for (int i = NUM_USED; i < points.length(); i++) {
 		int set_flag = 0;
-		
 		for (int j = 0; j < NUM_USED; j++) {
 			if (distances[i] ORDERING  distances[top_distance_indexes[j]]) {
 				set_flag = 1;
 				break;
 			}
 		}
-		
 		if (set_flag == 1) {
-			int least_distance = 0;
-			
+			int least_distance = 0;	
 			for (int j = 0; j < NUM_USED; j++) {
 				if (distances[top_distance_indexes[least_distance]] ORDERING  distances[top_distance_indexes[j]])
 					least_distance = j;
 			}
-			
 			top_distance_indexes[least_distance] = i;
 		}
 	}
 	
-	/*int least_distance = 0;
-	
-	for (int j = 1; j < NUM_USED; j++) {
-		if (distances[top_distance_indexes[least_distance]] <  distances[top_distance_indexes[j]])
-			least_distance = j;
-	}
-	
-	float real_least_distance = distances[top_distance_indexes[least_distance]];
-	*/
-	
 	// This just counts up the total distance, so it can be used in the next for loop.
 	for (int i = 0; i < NUM_USED; i++) {
-		//distances[top_distance_indexes[i]] = distance(points[top_distance_indexes[i]], fg.xy);
-		//distances[top_distance_indexes[i]] = sin(distances[top_distance_indexes[i]] * 0.1  + 1);
-		//distances[top_distance_indexes[i]] -= real_least_distance;
 #ifdef VALUE_ALGO
 		distances[top_distance_indexes[i]] = value_ranker(points[top_distance_indexes[i]],
 		                                                  point_colors[top_distance_indexes[i]], distances[top_distance_indexes[i]]);
