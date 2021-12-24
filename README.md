@@ -42,3 +42,5 @@ See `gg2 --help` for a basic idea of how to use it.
 `gg2 -E -e 'vec2 e=pcos((fg.xy+point)/100); return e.x*e.y+psin(dist/10)*0.2;' -p 'fg += 10*sin(fg/2);' -s 0.001 -a 2 -n 5 -I pics/what_i_was_actually_going_for.png -w 1920x1080`
 ![picture](pics/what_i_was_actually_going_for.png)
 
+`gg2 -n 5 -p "vec4 cosfg = cos(fg/20); fg+= 200*cosfg.x*cosfg.y;" -e "psin(dist/100)" -s 0.001 -I pics/bubbles.png -w 1920x1080 -M 4`
+![picture](pics/bubbles.png)
