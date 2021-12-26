@@ -44,3 +44,9 @@ See `gg2 --help` for a basic idea of how to use it.
 
 `gg2 -n 5 -p "vec4 cosfg = cos(fg/20); fg+= 200*cosfg.x*cosfg.y;" -e "psin(dist/100)" -s 0.001 -I pics/bubbles.png -w 1920x1080 -M 4`
 ![picture](pics/bubbles.png)
+
+`gg2 -n 10 -a 10 -e "cos(dist/10)*200" -s 0.001 -w 1920x1080 -I pics/cells.png -M 4`
+![picture](pics/cells.png)
+
+`gg2 -n 10 -a 9 -e "cos(dist/10)*200" -s 0.001 -w 1920x1080 -I pics/cells2.png -M 4`
+![picture](pics/cells2.png)
