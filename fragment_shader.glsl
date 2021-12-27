@@ -26,9 +26,11 @@ CREATE_PFUNC(vec4);
 
 float distances[NUM_POINTS];
 
-void rotate(inout vec2 p0, in float angle)
-{
-	p0 = vec2(p0.x * cos(angle) - p0.y * sin(angle), p0.x * sin(angle) - p0.y * cos(angle));
+void rotate(inout vec2 v, float a) {
+	float s = sin(a);
+	float c = cos(a);
+	mat2 m = mat2(c, -s, s, c);
+	v = m * v;
 }
 
 float get_angle_with_rotation(in float adj, in vec2 v1, in vec2 v2)
