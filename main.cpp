@@ -311,15 +311,14 @@ int main(int argc, char **argv)
 	// These will fail if the variables are not actually used in the progam, its not serious.
 	int timeLocation = glGetUniformLocation(shaderProgram, "time");
 	if (timeLocation == GL_INVALID_VALUE)
-		puts("failed at time\n");
+		std::cout << "failed at time\n" << std::endl;
 	int pointsLocation = glGetUniformLocation(shaderProgram, "points");
 	if (pointsLocation == GL_INVALID_VALUE)
-		puts("failed at points\n");
+		std::cout << "failed at points\n" << std::endl;
 	int pointColorsLocation = glGetUniformLocation(shaderProgram, "point_colors");
 	if (pointColorsLocation == GL_INVALID_VALUE)
-		puts("failed at colors\n");
-		
-	std::cout << std::endl;
+		std::cout << "failed at colors\n" << std::endl;
+
 	double initial_time = glfwGetTime();
 	unsigned int elapsed_frames = 0;
 	
