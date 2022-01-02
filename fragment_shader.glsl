@@ -13,16 +13,16 @@ out vec4 FragColor;
 uniform float time;
 uniform vec2 points[NUM_POINTS];
 uniform vec3 point_colors[NUM_POINTS];
-uniform float speed;
+uniform ivec2 window_size;
 
 vec4 fg = gl_FragCoord;
 
-// Only way I could find to generalize these functions. 
+// Only way I could find to generalize these functions.
 #define CREATE_PFUNC(type) type psin(in type f) { return sin(f) + 1 ; }; type pcos(in type f) { return cos(f) + 1 ; }
 CREATE_PFUNC(float);
 CREATE_PFUNC(vec2);
 CREATE_PFUNC(vec3);
-CREATE_PFUNC(vec4); 
+CREATE_PFUNC(vec4);
 
 float distances[NUM_POINTS];
 
@@ -38,7 +38,7 @@ float get_angle_with_rotation(in float adj, in vec2 v1, in vec2 v2)
 	vec2 change = v1 - v2;
 	change = normalize(change);
 	change = rotate(change, adj);
-
+	
 	// using atan for the angle is working kinda weird, i switched it out for this weirdness
 	return abs(atan(change.x / change.y));
 	//return abs(change.x) / 10;
@@ -71,8 +71,8 @@ float value_ranker(in vec2 point, in vec3 pc, in float value)
 void main()
 {
 	FragColor = vec4(0., 0., 0., 0.);
-	fg.xy += gl_SamplePosition; // For multisampling 
-
+	fg.xy += gl_SamplePosition; // For multisampling
+	
 	PRERUN_BLOCK // Expands to -p argument
 	
 	int top_distance_indexes[NUM_USED];
@@ -81,8 +81,8 @@ void main()
 	// Distance ranking.
 	for (int i = 0; i < points.length(); i++)
 		distances[i] = sorting_ranker(points[i], point_colors[i]);
-
-
+		
+		
 	// Add the indexes of the points with the most valueable distance values to top_distance_indexes
 	for (int i = 0; i < NUM_USED; i++)
 		top_distance_indexes[i] = i;
@@ -95,7 +95,7 @@ void main()
 			}
 		}
 		if (set_flag == 1) {
-			int least_distance = 0;	
+			int least_distance = 0;
 			for (int j = 0; j < NUM_USED; j++) {
 				if (distances[top_distance_indexes[least_distance]] ORDERING  distances[top_distance_indexes[j]])
 					least_distance = j;

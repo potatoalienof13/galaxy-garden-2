@@ -318,6 +318,10 @@ int main(int argc, char **argv)
 	int pointColorsLocation = glGetUniformLocation(shaderProgram, "point_colors");
 	if (pointColorsLocation == GL_INVALID_VALUE)
 		std::cout << "failed at colors\n" << std::endl;
+	int windowSizeLocation = glGetUniformLocation(shaderProgram, "window_size");
+	if (windowSizeLocation == GL_INVALID_VALUE)
+		std::cout << "failed at window\n" << std::endl;
+
 
 	double initial_time = glfwGetTime();
 	unsigned int elapsed_frames = 0;
@@ -386,6 +390,7 @@ int main(int argc, char **argv)
 		glUniform2fv(pointsLocation, num_points, (GLfloat *) true_points.data());
 		glUniform3fv(pointColorsLocation, num_points, (GLfloat *) point_colors.data());
 		glUniform1f(timeLocation, time);
+		glUniform2i(windowSizeLocation, window_size.x, window_size.y); 
 		
 		// Do all the stuff for opengl to actually do something
 		processInput(window);
