@@ -44,7 +44,7 @@ float get_angle_with_rotation(in float adj, in vec2 v1, in vec2 v2)
 	//return abs(change.x) / 10;
 }
 
-float sorting_ranker(in vec2 point, in vec3 pc)
+float sorting_ranker(in vec2 point, in vec3 pc, int index)
 {
 	float adj = time * ROTATE_ANGLE * (pc.r - 0.5) * 2 * PI + pc.g * 2 * PI;
 	float dist = distance(point, fg.xy);
@@ -80,7 +80,7 @@ void main()
 	
 	// Distance ranking.
 	for (int i = 0; i < points.length(); i++)
-		distances[i] = sorting_ranker(points[i], point_colors[i]);
+		distances[i] = sorting_ranker(points[i], point_colors[i], i);
 		
 		
 	// Add the indexes of the points with the most valueable distance values to top_distance_indexes
