@@ -56,7 +56,7 @@ float sorting_ranker(in vec2 point, in vec3 pc, int index)
 #endif
 }
 
-float value_ranker(in vec2 point, in vec3 pc, in float value)
+float value_ranker(in vec2 point, in vec3 pc, in float value, int index)
 {
 	float adj = time * ROTATE_ANGLE * (pc.r - 0.5) * 2 * PI + pc.g * 2 * PI;
 	float dist = distance(point, fg.xy);
@@ -108,7 +108,7 @@ void main()
 	for (int i = 0; i < NUM_USED; i++) {
 #ifdef VALUE_ALGO
 		distances[top_distance_indexes[i]] = value_ranker(points[top_distance_indexes[i]],
-		                                                  point_colors[top_distance_indexes[i]], distances[top_distance_indexes[i]]);
+		                                                  point_colors[top_distance_indexes[i]], distances[top_distance_indexes[i]], top_distance_indexes[i]);
 #endif
 		total_distance += distances[top_distance_indexes[i]];
 	}
