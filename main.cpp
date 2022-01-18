@@ -89,6 +89,8 @@ int main(int argc, char **argv)
 	int_vec2 window_size = {800, 600};
 	std::string config_path;
 	int multisampling;
+	std::vector<std::string> extra_includes;
+	
 	
 	try {
 		// *INDENT-OFF*
@@ -117,6 +119,7 @@ int main(int argc, char **argv)
 		TCLAP::ValueArg<float> cirle_rotation_circumference_arg ("c", "circle-circ","Size of the circles when using -y circle", 0, 0.1, "float");
 		TCLAP::ValueArg<std::string> prerun_block_arg ("p", "prerun-block","Code that runs at the very beginning of the shader.", 0, "", "string");
 		TCLAP::ValueArg<int> multisampling_arg ("M", "multisampling","If specified, do multisampling with the specified amount of samples per pixel", 0, 0, "int");
+		TCLAP::MultiArg<std::string> extra_includes_arg("U","include", "extra files to insert before the fragment shader", false, "file");
 		
 		cmd.add(num_points_arg);
 		cmd.add(num_used_arg);
@@ -142,6 +145,7 @@ int main(int argc, char **argv)
 		cmd.add(cirle_rotation_circumference_arg);
 		cmd.add(prerun_block_arg); 
 		cmd.add(multisampling_arg); 
+		cmd.add(extra_includes_arg);
 		// *INDENT-ON*
 		
 		cmd.parse(argc, argv);
@@ -170,6 +174,7 @@ int main(int argc, char **argv)
 		cirle_rotation_circumference = cirle_rotation_circumference_arg.getValue();
 		prerun_block = prerun_block_arg.getValue();
 		multisampling = multisampling_arg.getValue();
+		extra_includes = extra_includes_arg.getValue();
 		
 		if (! shaders_are_here(config_path)) {
 			std::cout << "Shaders were not found at " <<
@@ -200,10 +205,9 @@ int main(int argc, char **argv)
 	
 	GLFWwindow *window = initialize_glfw(window_size.x, window_size.y, !render_to_image, multisampling);
 	initialize_glad();
-	if(multisampling){
-		glEnable(GL_MULTISAMPLE); 
-	}
-	
+	if (multisampling)
+		glEnable(GL_MULTISAMPLE);
+		
 	// Initializing and constructing the shaders
 	Shader vertex_shader(GL_VERTEX_SHADER, "VERTEX"); // Vertex is simple, it barely does anything
 	vertex_shader.read_file(config_path + vertex_filename);
@@ -226,6 +230,10 @@ int main(int argc, char **argv)
 	fragment_shader.source << "#define SORT_ALGO " << sorting_algo << std::endl;
 	fragment_shader.source << "#define ORDERING " << (ordering_greater ? ">" : "<") << std::endl;
 	fragment_shader.source << "#define PRERUN_BLOCK " << prerun_block << std::endl;
+	
+	for (auto i : extra_includes)
+		fragment_shader.read_file(i);
+		
 	fragment_shader.source << "#line 1\n"; // Without this glsl compilation issues would have the wrong line numbers.
 	
 	// appends the contents of that file to the existing contents
@@ -321,8 +329,8 @@ int main(int argc, char **argv)
 	int windowSizeLocation = glGetUniformLocation(shaderProgram, "window_size");
 	if (windowSizeLocation == GL_INVALID_VALUE)
 		std::cout << "failed at window\n" << std::endl;
-
-
+		
+		
 	double initial_time = glfwGetTime();
 	unsigned int elapsed_frames = 0;
 	
@@ -390,7 +398,7 @@ int main(int argc, char **argv)
 		glUniform2fv(pointsLocation, num_points, (GLfloat *) true_points.data());
 		glUniform3fv(pointColorsLocation, num_points, (GLfloat *) point_colors.data());
 		glUniform1f(timeLocation, time);
-		glUniform2i(windowSizeLocation, window_size.x, window_size.y); 
+		glUniform2i(windowSizeLocation, window_size.x, window_size.y);
 		
 		// Do all the stuff for opengl to actually do something
 		processInput(window);
