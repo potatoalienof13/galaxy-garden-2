@@ -52,8 +52,14 @@ std::string get_config_dir() {
 		env_config = std::getenv("XDG_CONFIG_HOME");
 	else
 	{
-		std::string home = std::getenv("HOME");
-		env_config = home + "/.config";
+		if (std::getenv("HOME")) {
+			std::string home = std::getenv("HOME");
+			env_config = home + "/.config";
+		}
+		else {
+			std::cerr << "You are homeless, lol.  Either set $XDG_CONFIG_HOME or $HOME." << std::endl; 
+			std::exit(-1); 
+		}
 	}
 	env_config += "/gg2/";
 	return env_config;  // should never be able to reach this.
@@ -231,9 +237,11 @@ int main(int argc, char **argv)
 	fragment_shader.source << "#define ORDERING " << (ordering_greater ? ">" : "<") << std::endl;
 	fragment_shader.source << "#define PRERUN_BLOCK " << prerun_block << std::endl;
 	
-	for (auto i : extra_includes)
+	for (auto i : extra_includes) {
 		fragment_shader.read_file(i);
-		
+		std::cout << i << std::endl;
+	}
+	
 	fragment_shader.source << "#line 1\n"; // Without this glsl compilation issues would have the wrong line numbers.
 	
 	// appends the contents of that file to the existing contents
