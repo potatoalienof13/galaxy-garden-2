@@ -10,6 +10,7 @@
 #include <filesystem>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgcodecs.hpp>
+#include <algorithm>
 
 #include "initialization.hpp"
 #include "shader.hpp"
@@ -57,14 +58,17 @@ std::string get_config_dir() {
 			env_config = home + "/.config";
 		}
 		else {
-			std::cerr << "You are homeless, lol.  Either set $XDG_CONFIG_HOME or $HOME." << std::endl; 
-			std::exit(-1); 
+			std::cerr << "You are homeless, lol.  Either set $XDG_CONFIG_HOME or $HOME." << std::endl;
+			std::exit(-1);
 		}
 	}
 	env_config += "/gg2/";
 	return env_config;  // should never be able to reach this.
 }
 
+void remove_newlines(std::string &input){
+	std::replace(input.begin(),input.end(),'\n',' ');
+}
 
 int main(int argc, char **argv)
 {
@@ -232,11 +236,16 @@ int main(int argc, char **argv)
 		
 	fragment_shader.source << "#define ROTATE_COLORS " << color_rotation_speed << std::endl;
 	fragment_shader.source << "#define ROTATE_ANGLE " << angle_rotation_speed << std::endl;
+	fragment_shader.source << "#define ORDERING " << (ordering_greater ? ">" : "<") << std::endl;
+
+	remove_newlines(prerun_block);
+	remove_newlines(sorting_algo);
+	remove_newlines(value_algo); 
+
+	fragment_shader.source << "#define PRERUN_BLOCK " << prerun_block << std::endl;
 	fragment_shader.source << "#define VALUE_ALGO " << value_algo << std::endl;
 	fragment_shader.source << "#define SORT_ALGO " << sorting_algo << std::endl;
-	fragment_shader.source << "#define ORDERING " << (ordering_greater ? ">" : "<") << std::endl;
-	fragment_shader.source << "#define PRERUN_BLOCK " << prerun_block << std::endl;
-	
+
 	for (auto i : extra_includes) {
 		fragment_shader.read_file(i);
 		std::cout << i << std::endl;
