@@ -34,6 +34,18 @@ vec2 rotate(in vec2 v, float a) {
 }
 
 
+float get_angle_with_rotation(in float adj, in vec2 v1, in vec2 v2)
+{
+       vec2 change = v1 - v2;
+       change = normalize(change);
+       change = rotate(change, adj);
+
+       // using atan for the angle is working kinda weird, i switched it out for this weirdness
+       return abs(atan(change.x / change.y));
+       //return abs(change.x) / 10;
+}
+
+
 
 float sorting_ranker(in vec2 point, in vec3 pc, int index)
 {
