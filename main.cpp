@@ -11,6 +11,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <algorithm>
+#include <thread>
 
 #include "initialization.hpp"
 #include "shader.hpp"
@@ -100,7 +101,7 @@ int main(int argc, char **argv)
 	std::string config_path;
 	int multisampling;
 	std::vector<std::string> extra_includes;
-	
+	int desired_framerate; 
 	
 	try {
 		// *INDENT-OFF*
@@ -130,7 +131,8 @@ int main(int argc, char **argv)
 		TCLAP::ValueArg<std::string> prerun_block_arg ("p", "prerun-block","Code that runs at the very beginning of the shader.", 0, "", "string");
 		TCLAP::ValueArg<int> multisampling_arg ("M", "multisampling","If specified, do multisampling with the specified amount of samples per pixel", 0, 0, "int");
 		TCLAP::MultiArg<std::string> extra_includes_arg("U","include", "extra files to insert before the fragment shader", false, "file");
-		
+		TCLAP::ValueArg<int> desired_framerate_arg ("F", "fps","Allows you to limit your fps", 0, 0, "int");
+	
 		cmd.add(num_points_arg);
 		cmd.add(num_used_arg);
 		cmd.add(margins_arg);
@@ -156,6 +158,8 @@ int main(int argc, char **argv)
 		cmd.add(prerun_block_arg); 
 		cmd.add(multisampling_arg); 
 		cmd.add(extra_includes_arg);
+		cmd.add(desired_framerate_arg);
+		
 		// *INDENT-ON*
 		
 		cmd.parse(argc, argv);
@@ -185,6 +189,7 @@ int main(int argc, char **argv)
 		prerun_block = prerun_block_arg.getValue();
 		multisampling = multisampling_arg.getValue();
 		extra_includes = extra_includes_arg.getValue();
+		desired_framerate = desired_framerate_arg.getValue();
 		
 		if (! shaders_are_here(config_path)) {
 			std::cout << "Shaders were not found at " <<
@@ -368,6 +373,7 @@ int main(int argc, char **argv)
 		if (!render_to_image)
 			glfwGetWindowSize(window, &window_size.x, &window_size.y);
 		float time = glfwGetTime();
+		auto time_cpp = std::chrono::high_resolution_clock::now();
 		
 		switch (point_movement_type) { // Here is where the points are moved according to point_movement_type
 		case movement::circle:
@@ -430,7 +436,7 @@ int main(int argc, char **argv)
 			glReadPixels(0, 0, img.cols, img.rows, GL_BGR, GL_UNSIGNED_BYTE, img.data);
 			break;
 		}
-		
+	
 		if (print_frame_times) {
 			elapsed_frames++;
 			double time_change = glfwGetTime() - initial_time;
@@ -440,6 +446,9 @@ int main(int argc, char **argv)
 				elapsed_frames = 0;
 				initial_time = glfwGetTime();
 			}
+		}
+		if(desired_framerate){
+			std::this_thread::sleep_until(time_cpp + std::chrono::milliseconds(1000/(desired_framerate))); 
 		}
 	}
 	
