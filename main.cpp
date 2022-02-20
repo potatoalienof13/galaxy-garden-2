@@ -12,6 +12,8 @@
 #include <opencv2/imgcodecs.hpp>
 #include <algorithm>
 #include <thread>
+#include <typeinfo>
+
 
 #include "initialization.hpp"
 #include "shader.hpp"
@@ -26,7 +28,7 @@ enum class movement {
 };
 
 // *INDENT-OFF*
-constexpr float vertices[] = { // vertices for a rectangle that fills the entire screen
+std::vector<float> vertices = { // vertices for a rectangle that fills the entire screen
 		-1.f, -1.f, 0.0f,
 		 1.f, -1.f, 0.0f,
 		-1.f,  1.f, 0.0f,
@@ -67,9 +69,20 @@ std::string get_config_dir() {
 	return env_config;  // should never be able to reach this.
 }
 
-void remove_newlines(std::string &input){
-	std::replace(input.begin(),input.end(),'\n',' ');
+void remove_newlines(std::string &input) {
+	std::replace(input.begin(), input.end(), '\n', ' ');
 }
+
+struct GLSLConstant {
+	std::string name;
+	std::string value;
+	
+	GLSLConstant(std::string name, std::string value) : name(name), value(value) {}
+	GLSLConstant(std::string name) : name(name), value("") {}
+};
+
+
+//template <> GLSLConstant::GLSLConstant<std::string>(std::string name, std::string value) : name(name), value(value) {};
 
 int main(int argc, char **argv)
 {
@@ -101,7 +114,7 @@ int main(int argc, char **argv)
 	std::string config_path;
 	int multisampling;
 	std::vector<std::string> extra_includes;
-	int desired_framerate; 
+	int desired_framerate;
 	
 	try {
 		// *INDENT-OFF*
@@ -132,7 +145,7 @@ int main(int argc, char **argv)
 		TCLAP::ValueArg<int> multisampling_arg ("M", "multisampling","If specified, do multisampling with the specified amount of samples per pixel", 0, 0, "int");
 		TCLAP::MultiArg<std::string> extra_includes_arg("U","include", "extra files to insert before the fragment shader", false, "file");
 		TCLAP::ValueArg<int> desired_framerate_arg ("F", "fps","Allows you to limit your fps", 0, 0, "int");
-	
+		
 		cmd.add(num_points_arg);
 		cmd.add(num_used_arg);
 		cmd.add(margins_arg);
@@ -191,6 +204,7 @@ int main(int argc, char **argv)
 		extra_includes = extra_includes_arg.getValue();
 		desired_framerate = desired_framerate_arg.getValue();
 		
+		
 		if (! shaders_are_here(config_path)) {
 			std::cout << "Shaders were not found at " <<
 			          (config_path_arg.isSet() ? config_path : "XDG_CONFIG_HOME or ~/.config") << std::endl;
@@ -229,33 +243,39 @@ int main(int argc, char **argv)
 	vertex_shader.compile();
 	
 	Shader fragment_shader(GL_FRAGMENT_SHADER, "FRAGMENT"); // Fragment shader needs to do most of the heavy lifting
-	fragment_shader.source << "#version 460\n#define NUM_POINTS " << num_points <<
-	                       "\n#define NUM_USED " << num_used << "\n";
-	                       
-	if (draw_circles)
-		fragment_shader.source << "#define DRAW_CIRCLES\n";
-	if (sorting_algo_is_block)
-		fragment_shader.source << "#define SORT_USE_BODY\n";
-	if (value_algo_is_block)
-		fragment_shader.source << "#define VALUE_USE_BODY\n";
-		
-	fragment_shader.source << "#define ROTATE_COLORS " << color_rotation_speed << std::endl;
-	fragment_shader.source << "#define ROTATE_ANGLE " << angle_rotation_speed << std::endl;
-	fragment_shader.source << "#define ORDERING " << (ordering_greater ? ">" : "<") << std::endl;
-
+	fragment_shader.source << "#version 460\n";
+	std::vector<GLSLConstant> GLSLConstants;
+	
 	remove_newlines(prerun_block);
 	remove_newlines(sorting_algo);
-	remove_newlines(value_algo); 
-
-	fragment_shader.source << "#define PRERUN_BLOCK " << prerun_block << std::endl;
-	fragment_shader.source << "#define VALUE_ALGO " << value_algo << std::endl;
-	fragment_shader.source << "#define SORT_ALGO " << sorting_algo << std::endl;
-
+	remove_newlines(value_algo);
+	
+	GLSLConstants = {
+		GLSLConstant("NUM_POINTS", std::to_string(num_points)),
+		GLSLConstant("NUM_USED", std::to_string(num_used)),
+		GLSLConstant("ROTATE_ANGLE", std::to_string(angle_rotation_speed)),
+		GLSLConstant("ROTATE_COLORS", std::to_string(color_rotation_speed)),
+		GLSLConstant("ORDERING", (ordering_greater ? ">" : "<")),
+		GLSLConstant("PRERUN_BLOCK", prerun_block),
+		GLSLConstant("VALUE_ALGO", value_algo),
+		GLSLConstant("SORT_ALGO", sorting_algo),
+	};
+	
+	if (draw_circles)
+		GLSLConstants.push_back(GLSLConstant("DRAW_CIRCLES"));
+	if (sorting_algo_is_block)
+		GLSLConstants.push_back(GLSLConstant("SORT_USE_BODY"));
+	if (value_algo_is_block)
+		GLSLConstants.push_back(GLSLConstant("VALUE_USE_BODY"));
+		
 	for (auto i : extra_includes) {
 		fragment_shader.read_file(i);
 		std::cout << i << std::endl;
 	}
 	
+	for (auto i : GLSLConstants)
+		fragment_shader.source << "#define " << i.name << " " << i.value << std::endl;
+		
 	fragment_shader.source << "#line 1\n"; // Without this glsl compilation issues would have the wrong line numbers.
 	
 	// appends the contents of that file to the existing contents
@@ -272,13 +292,16 @@ int main(int argc, char **argv)
 	glDeleteShader(fragment_shader.id);
 	
 	
+	std::vector<float> more_vertices;
+	
+	
 	unsigned int VBO, VAO;
 	// Set up vertex and array buffers
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO); // set type of buffer
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
 	glEnableVertexAttribArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -426,7 +449,7 @@ int main(int argc, char **argv)
 		// Do all the stuff for opengl to actually do something
 		processInput(window);
 		glBindVertexArray(VAO);
-		glDrawArrays(GL_TRIANGLES, 0, 6);
+		glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 		
 		if (!render_to_image) {
 			glfwSwapBuffers(window);
@@ -436,7 +459,7 @@ int main(int argc, char **argv)
 			glReadPixels(0, 0, img.cols, img.rows, GL_BGR, GL_UNSIGNED_BYTE, img.data);
 			break;
 		}
-	
+		
 		if (print_frame_times) {
 			elapsed_frames++;
 			double time_change = glfwGetTime() - initial_time;
@@ -447,9 +470,8 @@ int main(int argc, char **argv)
 				initial_time = glfwGetTime();
 			}
 		}
-		if(desired_framerate){
-			std::this_thread::sleep_until(time_cpp + std::chrono::milliseconds(1000/(desired_framerate))); 
-		}
+		if (desired_framerate)
+			std::this_thread::sleep_until(time_cpp + std::chrono::milliseconds(1000 / (desired_framerate)));
 	}
 	
 	if (render_to_image) {
@@ -459,3 +481,4 @@ int main(int argc, char **argv)
 	glfwTerminate();
 	return 0;
 }
+
