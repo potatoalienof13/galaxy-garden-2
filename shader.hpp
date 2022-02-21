@@ -18,6 +18,8 @@ public:
 	void compile();
 	
 	void read_file(std::string filename);
+
+	void set_version(std::string); 
 };
 
 #endif // shader_hpp_INCLUDED

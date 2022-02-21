@@ -46,7 +46,7 @@ void shaders_not_found_error() {
 }
 
 bool shaders_are_here(std::string path) {
-	std::ifstream vs(path + vertex_filename), fs(path + fragment_filename);
+	std::ifstream vs(path + "/" +  vertex_filename), fs(path + "/" + fragment_filename);
 	return (vs.good() && fs.good());
 }
 
@@ -236,17 +236,19 @@ int main(int argc, char **argv)
 	initialize_glad();
 	if (multisampling)
 		glEnable(GL_MULTISAMPLE);
-		
+
+
 	// Initializing and constructing the shaders
 	Shader vertex_shader(GL_VERTEX_SHADER, "VERTEX"); // Vertex is simple, it barely does anything
-	vertex_shader.read_file(config_path + vertex_filename);
+	vertex_shader.set_version("400"); 
+	vertex_shader.read_file(config_path + "/" + vertex_filename);
 	vertex_shader.compile();
 	
 	Shader fragment_shader(GL_FRAGMENT_SHADER, "FRAGMENT"); // Fragment shader needs to do most of the heavy lifting
-	fragment_shader.source << "#version 460\n";
+	fragment_shader.set_version("400");
 	std::vector<GLSLConstant> GLSLConstants;
 	
-	remove_newlines(prerun_block);
+	remove_newlines(prerun_block); 
 	remove_newlines(sorting_algo);
 	remove_newlines(value_algo);
 	
@@ -279,7 +281,7 @@ int main(int argc, char **argv)
 	fragment_shader.source << "#line 1\n"; // Without this glsl compilation issues would have the wrong line numbers.
 	
 	// appends the contents of that file to the existing contents
-	fragment_shader.read_file(config_path + fragment_filename);
+	fragment_shader.read_file(config_path + "/" + fragment_filename);
 	fragment_shader.compile();
 	
 	unsigned int shaderProgram = glCreateProgram();

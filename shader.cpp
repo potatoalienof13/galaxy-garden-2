@@ -5,11 +5,7 @@
 #include <fstream>
 #include "shader.hpp"
 
-Shader::Shader(int shader_type, std::string shader_name_arg)
-{
-	type = shader_type;
-	name = shader_name_arg;
-}
+Shader::Shader(int shader_type, std::string shader_name_arg) : type(shader_type), name(shader_name_arg){}
 
 void Shader::compile()
 {
@@ -33,13 +29,19 @@ void Shader::compile()
 void Shader::read_file(std::string filename)
 {
 	std::ifstream shader_file(filename);
-	
+	std::cout << filename << std::endl; 
 	if (shader_file.good()) {
 		source << shader_file.rdbuf();
 		
 	} else {
+
+		std::cout << shader_file.rdstate() << std::endl; 
 		std::cout << "failed to open file for shader " << name << std::endl;
 		std::exit(-2);
 	}
+}
+
+void Shader::set_version(std::string version){
+	source << "#version " << version << std::endl; 
 }
 
