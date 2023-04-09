@@ -21,7 +21,7 @@ void Shader::compile()
 	
 	if (!success) {
 		glGetShaderInfoLog(id, 512, NULL, infoLog);
-		std::cout << "ERROR::SHADER::" << name << "::COMPILATION_FAILED\n" << infoLog << std::endl;
+		std::cerr << "ERROR::SHADER::" << name << "::COMPILATION_FAILED\n" << infoLog << std::endl;
 		std::exit(1);
 	}
 }
@@ -29,14 +29,13 @@ void Shader::compile()
 void Shader::read_file(std::string filename)
 {
 	std::ifstream shader_file(filename);
-	std::cout << filename << std::endl; 
 	if (shader_file.good()) {
 		source << shader_file.rdbuf();
 		
 	} else {
 
-		std::cout << shader_file.rdstate() << std::endl; 
-		std::cout << "failed to open file for shader " << name << std::endl;
+		std::cerr << shader_file.rdstate() << std::endl; 
+		std::cerr << "failed to open file for shader " << name << std::endl;
 		std::exit(-2);
 	}
 }
